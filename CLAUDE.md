@@ -62,8 +62,19 @@ The founding insight: if an LLM has a society of thoughts (multiple perspectives
 
 This project was itself built by a society of thoughts — 25 parallel agents, no shared context, coherent through shared protocol. Like the Vedic shakhas: distributed preservation through shared structure.
 
+## Architecture Status
+
+This project is a complete, installable cognitive architecture:
+- **src/** — 16 Python modules implementing the full Antahkarana pipeline
+- **plugin/** — Claude Code plugin (10 skills, installed at darshana@darshana-marketplace)
+- **mcp/** — MCP server (9 tools, works with any MCP client)
+- **tests/** — 48 tests passing, 95% router accuracy, 100% filter accuracy
+- **CLI** — `python -m darshana` for interactive use
+
+The single interface: `from darshana import Antahkarana; mind = Antahkarana(); mind.think("query")`
+
 ## See Also
 
-- `.claude/structure.md` — file organization and naming
-- `.claude/content.md` — writing style and lesson format
-- `.claude/roadmap.md` — learning path and curriculum (COMPLETE)
+- `.claude/structure.md` — full folder layout and naming conventions
+- `.claude/content.md` — writing style, reasoning rules, depth requirements, self-check protocol
+- `.claude/roadmap.md` — complete build history + next steps

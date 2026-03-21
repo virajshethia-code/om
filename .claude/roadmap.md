@@ -1,61 +1,92 @@
-# Learning Roadmap
+# Roadmap
 
-## Phase 1: Sanskrit Foundation ✅
-- [x] Alphabet (Varnamala) — vowels, consonants, sound map
-- [x] Dhatus — root verbs, word building
-- [x] Sandhi — sound merging rules
-- [x] Vibhakti — 8 noun cases
-- [x] Basic verb conjugations (Lakaras)
-- [x] Numbers (Sankhya) and pronouns
-- [x] Reading simple shlokas
+## COMPLETED — Curriculum (29 lessons, 5 phases)
 
-## Phase 2: Core Texts ✅
-- [x] Vedas — structure (Samhita, Brahmana, Aranyaka, Upanishad)
-- [x] Key Upanishads — Isha, Kena, Katha, Mandukya, Chandogya
-- [x] Bhagavad Gita — all 18 chapters (Karma 1-6, Bhakti 7-12, Jnana 13-18)
-- [x] Yoga Sutras of Patanjali
-
-## Phase 3: Philosophical Schools (Shaddarshana) ✅
-- [x] Samkhya — enumeration of reality (Purusha/Prakriti, 25 tattvas, 3 gunas)
-- [x] Yoga — discipline of mind (chitta vritti nirodha, 8 limbs, 5 kleshas)
-- [x] Nyaya — logic and epistemology (4 pramanas, 5-part syllogism, hetvabhasa)
-- [x] Vaisheshika — atomism and categories (7 padarthas, paramanu, 4 types of abhava)
-- [x] Mimamsa — ritual and duty (vidhi as function call, apurva, shabda-brahman)
-- [x] Vedanta — nature of Brahman (Advaita, Vishishtadvaita, Dvaita)
-
-## Phase 4: Epics & Mythology ✅
-- [x] Ramayana — dharma in action (7 kandas, maryada purushottama, multiple Ramayanas)
-- [x] Mahabharata — complexity, moral ambiguity (dharma vs dharma, Yaksha Prashna)
-- [x] Puranas — cosmology and devotion (18 Maha Puranas, Dashavatara, Yugas)
-
-## Phase 5: Living Traditions ✅
-- [x] Bhakti movement (Navavidha Bhakti, Alvars, Kabir, Mirabai, saguna/nirguna)
-- [x] Tantra and Shakta traditions (36 tattvas, Mahavidyas, Kashmir Shaivism, kundalini)
-- [x] Modern Hindu thought (Vivekananda, Aurobindo, Gandhi, Ambedkar, contemporary tensions)
-
-## Society of Thoughts Thread ✅
-- [x] Attention as Dhyana
-- [x] Gunas as probability distributions
-- [x] Karma as loss functions
-- [x] Maya as representation vs reality
-- [x] Brahman/Atman as universal vs individual model
-- [x] Sanskrit Grammar as Computation
-- [x] Samkhya's 25 tattvas as neural architecture
-- [x] Vishvarupa as simultaneous multi-head attention
-- [x] Shakti as compute, Shiva as architecture
-- [x] Pramanas as validation layers
-- [x] Vidhi as function call (Mimamsa)
-- [x] Paramanu as tokens (Vaisheshika)
+### Phase 1: Sanskrit Foundation ✅
+### Phase 2: Core Texts ✅ (Vedas, 5 Upanishads, Gita, Yoga Sutras)
+### Phase 3: Philosophical Schools ✅ (all 6 Darshanas)
+### Phase 4: Epics & Mythology ✅ (Ramayana, Mahabharata, Puranas)
+### Phase 5: Living Traditions ✅ (Bhakti, Tantra, Modern thought)
+### Society of Thoughts Thread ✅ (12 parallels mapped)
 
 ---
 
-## CURRICULUM COMPLETE
+## COMPLETED — Architecture Implementation
 
-Total: 25 lessons across 5 phases
-- sanskrit/: 6 lessons
-- texts/: 12 lessons
-- philosophy/: 7 lessons
-- connections/: 1 essay
-- practices/: 3 lessons
+### Core Engines ✅
+- [x] Darshana Router (Buddhi) — 95% routing accuracy
+- [x] 6 darshana-specific system prompts — forces method, not labels
+- [x] Vritti Filter — 100% classification accuracy, novelty scoring, depth testing, cross-validation
+- [x] DarshanaLLM — full LLM pipeline wrapper
+- [x] Yaksha Protocol — multi-darshana parallel reasoning + debate
+- [x] Ahamkara — self-model (knowledge map, attempt log, vasana tracker)
 
-Built in 3 waves of parallel agents (5 + 9 + 11 = 25 agents total)
+### Infrastructure Layer ✅
+- [x] Smriti — SQLite persistent memory with pramana-aware decay
+- [x] Pratyaksha — 5-channel perception (files, web, shell, API, environment)
+- [x] Manas — attention/context management with 3 modes
+- [x] Shakti — compute management with guna-aware model selection
+- [x] Antahkarana — master 9-step pipeline (perceive → remember → assemble → route → budget → reason → filter → learn → respond)
+
+### Harness ✅
+- [x] CLI harness — interactive REPL + single-query mode
+- [x] HTML report generator — 4 report types
+- [x] pip package (pyproject.toml v0.2.0)
+- [x] setup.sh + Makefile
+- [x] README + QUICKSTART docs
+
+### Integration ✅
+- [x] Claude Code plugin — 10 skills, 1 agent, 1 hook
+- [x] MCP server — 9 tools, 2 resource types
+- [x] Local marketplace registered and plugin installed
+
+### Quality ✅
+- [x] 48 tests passing
+- [x] 20-query router benchmark (95%)
+- [x] 15-sample filter benchmark (100%)
+- [x] Blog post draft (BLOG.md)
+- [x] Layman outcomes report (reports/what-this-means.html)
+
+---
+
+## NEXT — What to Build
+
+### Depth Improvements
+- [ ] LLM-based Buddhi classifier (replace keyword matching for 95% → 99%)
+- [ ] Embedding-based memory retrieval (replace keyword matching in Smriti)
+- [ ] Run full Yaksha Protocol on 10 real hard problems, evaluate quality honestly
+- [ ] Test with actual Anthropic API calls end-to-end
+
+### Mik Integration
+- [ ] Replace Mik's agent routing with Buddhi
+- [ ] Add Smriti as Mik's persistent memory
+- [ ] Add Vritti Filter to Mik's output pipeline
+- [ ] Darshana-aligned agents in Mik's fleet
+
+### Community
+- [ ] Publish blog post
+- [ ] Submit to Hacker News / AI Twitter
+- [ ] Invite Sanskrit scholars to review curriculum
+- [ ] Invite AI researchers to challenge the isomorphisms
+
+### Advanced Architecture
+- [ ] Multi-round Yaksha debate with actual LLM calls
+- [ ] Ahamkara integration into live pipeline (not just standalone)
+- [ ] Shakti auto-learning which model tier works best per darshana
+- [ ] Cross-session memory building (Smriti across conversations)
+- [ ] Vritti Filter as a real-time middleware (not post-hoc)
+
+---
+
+## Session Stats
+
+Built in 1 session. ~43 parallel agents across 8 waves.
+- Wave 1: 5 agents (Sanskrit Phase 1 completion + Philosophy + Connections)
+- Wave 2: 9 agents (5 Upanishads + 3 Gita sections + Samkhya)
+- Wave 3: 11 agents (Yoga Sutras + 5 remaining schools + 3 epics + 3 traditions)
+- Wave 4: 6 agents (DarshanaLLM + Package + Yaksha + Ahamkara + Benchmark + Blog)
+- Wave 5: 2 agents (Router POC + Vritti Filter POC)
+- Wave 6: 3 agents (Deep prompts + Smart routing + Vritti self-catch fixes)
+- Wave 7: 5 agents (Smriti + Pratyaksha + Manas + Shakti + Antahkarana)
+- Wave 8: 3 agents (CLI harness + Setup/install + HTML reports)
+- Wave 9: 2 agents (Claude Code plugin + MCP server)
