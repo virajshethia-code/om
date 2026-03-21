@@ -39,9 +39,19 @@ from .darshana_llm import (
     MultiDarshanaResponse,
 )
 
+from .antahkarana import (
+    Antahkarana,
+    AntahkaranaResponse,
+    PipelineTrace,
+)
+
 __version__ = "0.1.0"
 __all__ = [
-    # Main API
+    # Antahkarana — the master pipeline (capstone)
+    "Antahkarana",
+    "AntahkaranaResponse",
+    "PipelineTrace",
+    # DarshanaLLM — direct LLM interface
     "DarshanaLLM",
     "DarshanaResponse",
     "MultiDarshanaResponse",
