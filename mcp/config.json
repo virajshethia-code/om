@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "darshana": {
+      "command": "python3",
+      "args": ["/Users/harsh/om/mcp/server.py"],
+      "env": {}
+    }
+  }
+}
