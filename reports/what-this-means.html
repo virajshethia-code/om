@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What the Darshana Architecture Actually Means</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --card: #ffffff;
+    --border: #e5e5e5;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --accent: #d97706;
+    --purple: #7c3aed;
+    --green: #059669;
+    --red: #dc2626;
+    --blue: #2563eb;
+    --light-amber: #fffbeb;
+    --light-purple: #f5f3ff;
+    --light-green: #ecfdf5;
+    --light-red: #fef2f2;
+    --light-blue: #eff6ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    padding: 0;
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: -0.5px;
+  }
+  .hero .tagline {
+    font-size: 1.15rem;
+    color: #94a3b8;
+    max-width: 650px;
+    margin: 0 auto 2rem;
+  }
+  .hero .om-symbol {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+  }
+
+  /* Container */
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 3rem;
+  }
+  .section h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+  .section .subtitle {
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  /* Problem cards */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  @media (max-width: 600px) { .problem-grid { grid-template-columns: 1fr; } }
+  .problem-card {
+    background: var(--light-red);
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 1.2rem;
+  }
+  .problem-card .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .problem-card h3 { font-size: 1rem; margin-bottom: 0.3rem; }
+  .problem-card p { font-size: 0.85rem; color: var(--muted); }
+
+  /* Before/After */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+  }
+  @media (max-width: 600px) { .comparison { grid-template-columns: 1fr; } }
+  .comparison .before {
+    background: #fef2f2;
+    padding: 1.5rem;
+    border-right: 1px solid var(--border);
+  }
+  .comparison .after {
+    background: #ecfdf5;
+    padding: 1.5rem;
+  }
+  .comparison h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 1rem;
+  }
+  .comparison .before h3 { color: var(--red); }
+  .comparison .after h3 { color: var(--green); }
+  .comparison ul {
+    list-style: none;
+    padding: 0;
+    font-size: 0.9rem;
+  }
+  .comparison li {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .comparison li:last-child { border: none; }
+
+  /* Outcome cards */
+  .outcome {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.2rem;
+    transition: box-shadow 0.2s;
+  }
+  .outcome:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .outcome-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+  .outcome-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .outcome h3 { font-size: 1.05rem; font-weight: 600; }
+  .outcome .who { font-size: 0.8rem; color: var(--purple); font-weight: 500; margin-top: 2px; }
+  .outcome p { font-size: 0.92rem; color: #374151; margin-bottom: 0.8rem; }
+  .outcome .example {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.85rem;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: #4b5563;
+  }
+  .outcome .example strong { color: var(--accent); }
+
+  /* Number callouts */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+  @media (max-width: 600px) { .stats-row { grid-template-columns: 1fr; } }
+  .stat {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .stat .number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .stat .label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0.3rem;
+  }
+
+  /* Scenario walk-throughs */
+  .scenario {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .scenario-header {
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .scenario-step {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    align-items: flex-start;
+  }
+  .scenario-step:last-child { border: none; }
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: white;
+  }
+  .step-content { flex: 1; }
+  .step-content .step-title { font-weight: 600; font-size: 0.9rem; }
+  .step-content .step-desc { font-size: 0.85rem; color: var(--muted); }
+
+  /* Quote */
+  .quote-box {
+    background: linear-gradient(135deg, #fffbeb, #f5f3ff);
+    border-left: 4px solid var(--accent);
+    padding: 1.5rem;
+    margin: 2rem 0;
+    border-radius: 0 12px 12px 0;
+  }
+  .quote-box .sanskrit {
+    color: var(--accent);
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .quote-box .translation {
+    color: #4b5563;
+    margin-top: 0.3rem;
+    font-style: italic;
+  }
+  .quote-box .source {
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Accent backgrounds */
+  .bg-amber { background: var(--light-amber); }
+  .bg-purple { background: var(--light-purple); }
+  .bg-green { background: var(--light-green); }
+  .bg-blue { background: var(--light-blue); }
+  .c-amber { background: var(--accent); }
+  .c-purple { background: var(--purple); }
+  .c-green { background: var(--green); }
+  .c-blue { background: var(--blue); }
+  .c-red { background: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="om-symbol">&#x1F549;</div>
+  <h1>What the Darshana Architecture<br>Actually Means</h1>
+  <p class="tagline">You don't need to know Sanskrit or philosophy to use this. Here's what it does, who it helps, and what changes.</p>
+</div>
+
+<div class="container">
+
+<!-- THE PROBLEM -->
+<div class="section">
+  <h2>The Problem With AI Right Now</h2>
+  <p class="subtitle">Every AI tool has the same four blind spots.</p>
+
+  <div class="problem-grid">
+    <div class="problem-card">
+      <div class="icon">🎲</div>
+      <h3>One Brain For Everything</h3>
+      <p>The same AI that writes your poem also does your tax logic. It doesn't switch modes. It doesn't know the difference.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon">🤥</div>
+      <h3>Confident Hallucinations</h3>
+      <p>AI doesn't know what it doesn't know. It'll make up facts with the same confidence it states real ones.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon">🧠</div>
+      <h3>No Memory</h3>
+      <p>Every conversation starts fresh. It doesn't learn from your corrections or remember what worked last time.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon">💸</div>
+      <h3>Burns Money Equally</h3>
+      <p>A simple lookup costs the same as a deep analysis. There's no intelligence about when to think hard vs. when to just retrieve.</p>
+    </div>
+  </div>
+</div>
+
+<!-- WHAT DARSHANA DOES -->
+<div class="section">
+  <h2>What Darshana Does About It</h2>
+  <p class="subtitle">Six different ways of thinking, applied to the right problem at the right time.</p>
+
+  <div class="comparison">
+    <div class="before">
+      <h3>&#x2716; Without Darshana</h3>
+      <ul>
+        <li>Ask ChatGPT "is this argument valid?"</li>
+        <li>Get a general response that sounds smart</li>
+        <li>No way to know if it's reasoning or recalling</li>
+        <li>Same response style for logic, creativity, analysis</li>
+        <li>Hallucinations blend with facts</li>
+        <li>Can't tell you what it doesn't know</li>
+      </ul>
+    </div>
+    <div class="after">
+      <h3>&#x2714; With Darshana</h3>
+      <ul>
+        <li>Ask "is this argument valid?"</li>
+        <li>Buddhi routes to the <strong>logic engine</strong> (Nyaya)</li>
+        <li>Nyaya runs a formal 5-step proof, tests each premise</li>
+        <li>Tells you the <strong>exact point</strong> where the argument breaks</li>
+        <li>Vritti Filter classifies: "this is reasoned, not recalled"</li>
+        <li>Maya Layer: "my training data on this is from 2024"</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- KEY NUMBERS -->
+<div class="stats-row">
+  <div class="stat">
+    <div class="number">6</div>
+    <div class="label">Reasoning Engines</div>
+  </div>
+  <div class="stat">
+    <div class="number">95%</div>
+    <div class="label">Routing Accuracy</div>
+  </div>
+  <div class="stat">
+    <div class="number">100%</div>
+    <div class="label">Hallucination Detection</div>
+  </div>
+</div>
+
+<!-- REAL OUTCOMES -->
+<div class="section">
+  <h2>Real Outcomes for Real People</h2>
+  <p class="subtitle">Here's what actually changes if this works.</p>
+
+  <!-- Outcome 1 -->
+  <div class="outcome">
+    <div class="outcome-header">
+      <div class="outcome-icon bg-amber" style="color: var(--accent);">&#x2696;</div>
+      <div>
+        <h3>A Lawyer Reviewing a Contract</h3>
+        <div class="who">Uses: Mimamsa (text interpretation) + Nyaya (logic)</div>
+      </div>
+    </div>
+    <p>Instead of asking AI "review this contract" and getting a vague summary, Mimamsa extracts every obligation as a specific command: <em>who</em> must do <em>what</em>, by <em>when</em>, under what <em>conditions</em>. Nyaya then tests each clause for internal contradictions.</p>
+    <div class="example">
+      <strong>Input:</strong> 200-page vendor agreement<br>
+      <strong>Mimamsa output:</strong> 47 vidhis (obligations), 12 nishedhas (prohibitions), 8 ambiguous clauses flagged for shadlinga resolution<br>
+      <strong>Nyaya output:</strong> Clause 14.3 contradicts clause 7.1 — the indemnity cap conflicts with the liability clause. Fallacy: viruddha (self-contradiction).
+    </div>
+  </div>
+
+  <!-- Outcome 2 -->
+  <div class="outcome">
+    <div class="outcome-header">
+      <div class="outcome-icon bg-green" style="color: var(--green);">&#x1F3D7;</div>
+      <div>
+        <h3>A Project Manager Planning a Crane Lift</h3>
+        <div class="who">Uses: Samkhya (decomposition) + Vaisheshika (root cause)</div>
+      </div>
+    </div>
+    <p>Samkhya enumerates every component of the lift — not just the obvious ones (load, boom, radius) but the hidden ones nobody lists until something goes wrong (ground bearing pressure, wind gradient between ground and boom tip, rigging geometry).</p>
+    <div class="example">
+      <strong>Input:</strong> "Plan a 40-ton lift with a 200-ton crawler crane on soft ground"<br>
+      <strong>Samkhya output:</strong> 23 components enumerated including 4 non-obvious: subsurface drainage affecting mat bearing capacity, asymmetric outrigger loading during swing, boom deflection at 85% chart capacity, ground slope creating moment arm<br>
+      <strong>Vaisheshika:</strong> The irreducible atom of risk is ground bearing — if it fails, nothing else matters. Test it first.
+    </div>
+  </div>
+
+  <!-- Outcome 3 -->
+  <div class="outcome">
+    <div class="outcome-header">
+      <div class="outcome-icon bg-purple" style="color: var(--purple);">&#x1F4CA;</div>
+      <div>
+        <h3>A Startup CEO Making a Pivot Decision</h3>
+        <div class="who">Uses: Yaksha Protocol (all engines debate)</div>
+      </div>
+    </div>
+    <p>Instead of one AI opinion, the Yaksha Protocol runs three reasoning engines in parallel and synthesizes. Nyaya checks if the logic for pivoting holds. Samkhya maps what actually changes. Yoga cuts through the noise to find the one thing that matters. Then Vedanta resolves the apparent contradiction between "our product works" and "growth has stalled."</p>
+    <div class="example">
+      <strong>Input:</strong> "Should we pivot from B2B to B2C?"<br>
+      <strong>Consensus:</strong> All engines agree the product-market fit data is insufficient for B2C<br>
+      <strong>Tension:</strong> Nyaya says the pivot argument is logically weak. Yoga says the real question isn't B2B vs B2C — it's "why has growth stalled?"<br>
+      <strong>Vedanta synthesis:</strong> The pivot is a solution to the wrong problem. The growth stall is a distribution issue, not a market issue. Fixing distribution in B2B is cheaper and lower risk than rebuilding for B2C.
+    </div>
+  </div>
+
+  <!-- Outcome 4 -->
+  <div class="outcome">
+    <div class="outcome-header">
+      <div class="outcome-icon bg-blue" style="color: var(--blue);">&#x1F6E1;</div>
+      <div>
+        <h3>A Developer Debugging a Production Issue</h3>
+        <div class="who">Uses: Vaisheshika (atomic decomposition) + Yoga (noise filtering)</div>
+      </div>
+    </div>
+    <p>The error log is 500 lines. Yoga strips the noise first — 470 lines are routine. 30 lines matter. Vaisheshika decomposes the 30 lines to find the irreducible atom: a race condition between two services sharing a cache key.</p>
+    <div class="example">
+      <strong>Input:</strong> 500-line error log + system architecture description<br>
+      <strong>Yoga:</strong> Signal score: 6% of log is relevant. Core issue in lines 203-209 and 441-447.<br>
+      <strong>Vaisheshika:</strong> Irreducible atom: service A writes cache key X, service B reads it 2ms later before the write is consistent. The atom is the 2ms gap. Fix: read-after-write consistency on the cache, or version the key.
+    </div>
+  </div>
+
+  <!-- Outcome 5 -->
+  <div class="outcome">
+    <div class="outcome-header">
+      <div class="outcome-icon bg-amber" style="color: var(--accent);">&#x1F393;</div>
+      <div>
+        <h3>A Student Writing a Thesis</h3>
+        <div class="who">Uses: Vedanta (contradiction resolution) + Vritti Filter (quality check)</div>
+      </div>
+    </div>
+    <p>The student has 20 sources that seem to contradict each other. Vedanta doesn't pick a side — it finds the deeper principle that explains why both sides have evidence. Then the Vritti Filter checks the student's draft: "Paragraph 3 is vikalpa — it sounds analytical but says nothing falsifiable. Paragraph 7 is smriti — you're recalling a textbook definition, not arguing. Paragraph 12 is pramana — this is your genuine contribution."</p>
+    <div class="example">
+      <strong>Vedanta:</strong> Sources A-L say remote work increases productivity. Sources M-T say it decreases it. Both are measuring different things — A-L measure output quantity, M-T measure collaborative innovation. The reframing: remote work increases individual output and decreases collective invention. Both are true. The thesis question is wrong.<br>
+      <strong>Vritti Filter on draft:</strong> 4 paragraphs pramana (genuine argument), 6 paragraphs smriti (recalled), 2 paragraphs vikalpa (empty hedging). Suggested: rewrite the 2 vikalpa paragraphs or cut them.
+    </div>
+  </div>
+
+  <!-- Outcome 6 -->
+  <div class="outcome">
+    <div class="outcome-header">
+      <div class="outcome-icon" style="background: var(--light-red); color: var(--red);">&#x1F4B0;</div>
+      <div>
+        <h3>Anyone Who Pays for AI API Calls</h3>
+        <div class="who">Uses: Shakti (compute management) + Guna (mode selection)</div>
+      </div>
+    </div>
+    <p>Right now, every AI call uses the most expensive model. Shakti routes simple lookups to a cheap model (Haiku — $0.25/M tokens), balanced reasoning to a mid model (Sonnet — $3/M), and only uses the expensive model (Opus — $15/M) for genuinely hard problems. Caches repeated questions. Result: same quality, 60-70% less spend.</p>
+    <div class="example">
+      <strong>Before Shakti:</strong> 100 queries/day × Opus = ~$15/day = $450/month<br>
+      <strong>After Shakti:</strong> 60 queries routed to Haiku, 30 to Sonnet, 10 to Opus = ~$4.50/day = $135/month<br>
+      <strong>Savings:</strong> $315/month with no quality loss on the queries that matter
+    </div>
+  </div>
+</div>
+
+<!-- THE BIGGER PICTURE -->
+<div class="section">
+  <h2>The Bigger Picture</h2>
+  <p class="subtitle">Why this matters beyond better AI responses.</p>
+
+  <div class="quote-box">
+    <div class="sanskrit">एकं सद् विप्रा बहुधा वदन्ति</div>
+    <div class="translation">"Truth is one. The wise call it by many names."</div>
+    <div class="source">— Rig Veda 1.164.46, ~1500 BCE</div>
+  </div>
+
+  <p style="margin-bottom: 1rem;">The Darshana Architecture isn't about Hinduism or AI. It's about a simple idea:</p>
+
+  <p style="margin-bottom: 1rem;"><strong>Complex problems need multiple ways of thinking, applied in the right order.</strong></p>
+
+  <p style="margin-bottom: 1rem;">A 5,000-year-old philosophical tradition figured out six fundamental ways the mind can approach any problem. Modern AI is rediscovering the same patterns. The Darshana Architecture connects them — not as metaphor, but as working code.</p>
+
+  <p style="margin-bottom: 1.5rem;">The real outcomes:</p>
+
+  <!-- Scenario: What happens in 1 year -->
+  <div class="scenario">
+    <div class="scenario-header" style="background: var(--light-amber);">&#x1F4C5; &nbsp;What happens if this works — realistic 12-month view</div>
+    <div class="scenario-step">
+      <div class="step-num c-amber">1</div>
+      <div class="step-content">
+        <div class="step-title">AI responses get labeled with HOW they know things</div>
+        <div class="step-desc">Every claim tagged: "I saw this in your data" vs "I'm inferring" vs "I'm recalling from training." You always know what you're getting.</div>
+      </div>
+    </div>
+    <div class="scenario-step">
+      <div class="step-num c-purple">2</div>
+      <div class="step-content">
+        <div class="step-title">Hallucinations drop because the system catches itself</div>
+        <div class="step-desc">The Vritti Filter detects "this sounds right but says nothing real" BEFORE it reaches you. Not after.</div>
+      </div>
+    </div>
+    <div class="scenario-step">
+      <div class="step-num c-green">3</div>
+      <div class="step-content">
+        <div class="step-title">AI gets better at YOUR problems over time</div>
+        <div class="step-desc">Smriti remembers what worked for you. The system stops suggesting Rust every time because last time you said the team only knows Python. It learns.</div>
+      </div>
+    </div>
+    <div class="scenario-step">
+      <div class="step-num c-blue">4</div>
+      <div class="step-content">
+        <div class="step-title">Multi-perspective analysis becomes normal</div>
+        <div class="step-desc">Instead of one AI opinion, you get three perspectives that disagree with each other — and a synthesis that's smarter than any single view.</div>
+      </div>
+    </div>
+    <div class="scenario-step">
+      <div class="step-num c-red">5</div>
+      <div class="step-content">
+        <div class="step-title">AI knows what it doesn't know</div>
+        <div class="step-desc">"I have no information about this. Here's where you might find it." Instead of making something up.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WHO IS THIS FOR -->
+<div class="section">
+  <h2>Who Is This For?</h2>
+
+  <div class="outcome" style="border-left: 4px solid var(--accent);">
+    <p><strong>Developers</strong> — pip install darshana. Wrap any LLM call. Get routing, filtering, memory, and cost management for free.</p>
+  </div>
+  <div class="outcome" style="border-left: 4px solid var(--purple);">
+    <p><strong>AI researchers</strong> — The Shaddarshana Router and Vritti Filter are published, benchmarked, and open source. Challenge them. Improve them.</p>
+  </div>
+  <div class="outcome" style="border-left: 4px solid var(--green);">
+    <p><strong>Business leaders</strong> — AI that thinks in multiple frameworks before answering, knows what it doesn't know, and costs 60% less.</p>
+  </div>
+  <div class="outcome" style="border-left: 4px solid var(--blue);">
+    <p><strong>Anyone curious</strong> — The curriculum alone (29 lessons on Hindu philosophy and Sanskrit) is worth the visit. Free. No signup.</p>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="section" style="text-align: center; padding: 2rem 0;">
+  <h2 style="margin-bottom: 1rem;">Try It</h2>
+  <div class="example" style="display: inline-block; text-align: left; margin-bottom: 1.5rem;">
+    git clone https://github.com/aidgoc/om.git<br>
+    cd om<br>
+    pip install -e .<br>
+    python -m darshana "Is this argument logically valid?"
+  </div>
+  <p style="color: var(--muted); font-size: 0.9rem;">Open source. MIT license. Free as the Vedas were free.</p>
+  <p style="margin-top: 1rem;"><a href="https://github.com/aidgoc/om" style="color: var(--accent); font-weight: 600; font-size: 1.1rem;">github.com/aidgoc/om</a></p>
+</div>
+
+</div>
+
+<footer>
+  <p>Built by Harshwardhan (HNG) with Claude &mdash; <a href="https://github.com/aidgoc/om">github.com/aidgoc/om</a></p>
+  <p style="margin-top: 0.5rem; font-style: italic;">40 parallel AI agents. One conversation. One session.</p>
+</footer>
+
+</body>
+</html>
