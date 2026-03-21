@@ -35,7 +35,7 @@ from pathlib import Path
 # Ensure the src directory is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from vritti_filter import VrittiFilter, Vritti
+from vritti_filter import VrittiFilter, Vritti, Pramana, VrittiResult
 
 
 # ---------------------------------------------------------------------------
@@ -176,6 +176,94 @@ BENCHMARK_SAMPLES: list[dict] = [
         "category": "SMRITI",
         "why": "Pure recall — definitions, dates, attributed facts, no fresh reasoning.",
     },
+    # --- DISGUISED SMRITI (sounds analytical, is just recall) — 2 samples ---
+    {
+        "id": 11,
+        "text": (
+            "The Israeli-Palestinian conflict has been a major source of "
+            "instability in the Middle East. It's well known that the "
+            "occupation has been a key factor in the ongoing tensions. "
+            "The settlements have been a significant obstacle to peace. "
+            "Obviously, the humanitarian situation has been a critical "
+            "concern for the international community. As everyone knows, "
+            "the two-state solution has been the primary diplomatic "
+            "framework discussed by world leaders."
+        ),
+        "expected": "smriti",
+        "category": "SMRITI",
+        "why": "Disguised recall: every claim is common knowledge wrapped in analytical framing.",
+    },
+    {
+        "id": 12,
+        "text": (
+            "Climate change has been a defining challenge of our era. "
+            "Rising sea levels have been a major concern for coastal "
+            "communities. Obviously, carbon emissions have been the "
+            "primary driver of global warming. It's well known that "
+            "the Paris Agreement was a significant milestone. Renewable "
+            "energy has been a key part of the solution, and as everyone "
+            "knows, solar and wind costs have fallen dramatically."
+        ),
+        "expected": "smriti",
+        "category": "SMRITI",
+        "why": "Disguised recall: organized Wikipedia with 'obviously' and 'well known' framing.",
+    },
+    # --- GENUINE ANUMANA (real novel reasoning chain) — 1 sample ---
+    {
+        "id": 13,
+        "text": (
+            "What most analyses of database performance miss is that the "
+            "bottleneck isn't the query engine — it's the serialization layer. "
+            "Because each row must be deserialized from the on-disk format, "
+            "which involves memory allocation, this creates GC pressure that "
+            "causes latency spikes. This implies that columnar storage isn't "
+            "just faster for analytics — it actually reduces garbage collection "
+            "overhead, which is the real reason Parquet outperforms row-based "
+            "formats in JVM-based systems. Therefore the fix for our p99 "
+            "latency spike at 890ms is not query optimization but changing "
+            "the storage format."
+        ),
+        "expected": "pramana",
+        "category": "PRAMANA",
+        "why": "Genuine anumana: novel causal chain connecting serialization to GC to latency.",
+    },
+    # --- PRAMANA-VRITTI MISMATCH — 1 sample ---
+    {
+        "id": 14,
+        "text": (
+            "Kubernetes was founded in 2014 by Google. It is defined as an "
+            "open-source container orchestration platform. Docker was invented "
+            "by Solomon Hykes."
+        ),
+        "expected": "smriti",
+        "category": "SMRITI",
+        "why": "Cross-validation test: if tagged as pratyaksha pramana, the mismatch should fire.",
+        "cross_validate": {
+            "pramana_tag": "pratyaksha",
+            "expect_mismatch": True,
+        },
+    },
+    # --- DEPTH TEST PASS — 1 sample ---
+    {
+        "id": 15,
+        "text": (
+            "The memory leak originates in the WebSocket handler at line 247. "
+            "Data shows each connection allocates a 64KB buffer never freed "
+            "on disconnect — 12,847 unreleased Buffer objects after 3 hours "
+            "with 500 concurrent connections, consuming 803MB. Therefore the "
+            "OOM kill at hour 4 is caused by this specific leak. This implies "
+            "the fix is not to increase memory but to call buffer.release() in "
+            "the on_close callback. Consequently any handler creating buffers "
+            "without a cleanup hook will reproduce this failure."
+        ),
+        "expected": "pramana",
+        "category": "PRAMANA",
+        "why": "Passes depth test: specific evidence, reasoning chain, non-obvious conclusion.",
+        "depth_test": {
+            "query": "Why does the server crash after 4 hours?",
+            "expect_score_above": 50,
+        },
+    },
 ]
 
 
@@ -184,11 +272,20 @@ BENCHMARK_SAMPLES: list[dict] = [
 # ---------------------------------------------------------------------------
 
 def run_benchmark() -> None:
-    """Execute all 10 samples and print a formatted report."""
+    """Execute all 15 samples and print a formatted report."""
 
     vf = VrittiFilter()
     results: list[dict] = []
     timings: list[float] = []
+    cross_validation_results: list[dict] = []
+    depth_test_results: list[dict] = []
+
+    pramana_map = {
+        "pratyaksha": Pramana.PRATYAKSHA,
+        "anumana": Pramana.ANUMANA,
+        "upamana": Pramana.UPAMANA,
+        "shabda": Pramana.SHABDA,
+    }
 
     for entry in BENCHMARK_SAMPLES:
         t0 = time.perf_counter()
@@ -199,7 +296,7 @@ def run_benchmark() -> None:
         actual = classification.vritti.value
         correct = actual == entry["expected"]
 
-        results.append({
+        result_entry = {
             "id": entry["id"],
             "category": entry["category"],
             "expected": entry["expected"],
@@ -212,7 +309,38 @@ def run_benchmark() -> None:
             "time_ms": elapsed_ms,
             "text_preview": entry["text"][:80] + "...",
             "why": entry["why"],
-        })
+        }
+
+        # Cross-validation extra
+        if "cross_validate" in entry:
+            cv = entry["cross_validate"]
+            tag = pramana_map[cv["pramana_tag"]]
+            report = vf.cross_validate(classification, tag)
+            cv_pass = (not report.consistent) == cv["expect_mismatch"]
+            result_entry["cross_validate_pass"] = cv_pass
+            cross_validation_results.append({
+                "id": entry["id"],
+                "consistent": report.consistent,
+                "expected_mismatch": cv["expect_mismatch"],
+                "pass": cv_pass,
+                "mismatches": [m.flag for m in report.mismatches],
+            })
+
+        # Depth test extra
+        if "depth_test" in entry:
+            dt = entry["depth_test"]
+            depth = vf.depth_test(entry["text"], dt["query"])
+            dt_pass = depth.score >= dt["expect_score_above"]
+            result_entry["depth_test_pass"] = dt_pass
+            depth_test_results.append({
+                "id": entry["id"],
+                "score": depth.score,
+                "threshold": dt["expect_score_above"],
+                "pass": dt_pass,
+                "breakdown": depth.breakdown,
+            })
+
+        results.append(result_entry)
 
     # --- Compute stats ---
     total = len(results)
@@ -226,7 +354,8 @@ def run_benchmark() -> None:
     # --- Print report ---
     print()
     print("=" * 100)
-    print("  VRITTI FILTER BENCHMARK — 10 Text Samples Across 5 Vritti Categories")
+    print("  VRITTI FILTER BENCHMARK — 15 Text Samples Across 5 Vritti Categories")
+    print("  (includes disguised smriti, cross-validation, and depth tests)")
     print("=" * 100)
     print()
 
@@ -317,8 +446,40 @@ def run_benchmark() -> None:
         print("  signals is genuinely ambiguous — the filter picks the stronger signal.")
         print()
     else:
-        print("NO MISCLASSIFICATIONS — all 10 samples classified correctly.")
+        print(f"NO MISCLASSIFICATIONS — all {total} samples classified correctly.")
         print()
+
+    # Cross-validation results
+    if cross_validation_results:
+        print("CROSS-VALIDATION RESULTS (FIX 2)")
+        print("-" * 90)
+        for cv in cross_validation_results:
+            mark = "PASS" if cv["pass"] else "FAIL"
+            print(f"  Sample #{cv['id']} [{mark}]")
+            print(f"    Consistent: {cv['consistent']}, Expected mismatch: {cv['expected_mismatch']}")
+            if cv["mismatches"]:
+                for m in cv["mismatches"]:
+                    print(f"    Mismatch: {m[:100]}")
+            print()
+
+    # Depth test results
+    if depth_test_results:
+        print("DEPTH TEST RESULTS (FIX 3)")
+        print("-" * 90)
+        for dt in depth_test_results:
+            mark = "PASS" if dt["pass"] else "FAIL"
+            print(f"  Sample #{dt['id']} [{mark}]")
+            print(f"    Score: {dt['score']}/100 (threshold: {dt['threshold']})")
+            print(f"    Breakdown: {dt['breakdown']}")
+            print()
+
+    # Novelty scores for all samples
+    print("NOVELTY SCORES (FIX 1)")
+    print("-" * 90)
+    for entry in BENCHMARK_SAMPLES:
+        ns = vf.novelty_score(entry["text"])
+        print(f"  Sample #{entry['id']:>2} ({entry['category']:<12}): novelty={ns:>3}/100")
+    print()
 
     # Final verdict
     print("=" * 100)

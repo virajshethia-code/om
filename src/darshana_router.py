@@ -95,12 +95,21 @@ class PramanaTag:
 
 
 @dataclass
+class RoutingDecision:
+    """Structured routing decision with depth intelligence."""
+    selected_engines: List[str]  # ordered by relevance
+    depth_mode: str  # "deep" or "broad"
+    reasoning: str  # why these engines were selected
+
+
+@dataclass
 class RoutingResult:
     """The Buddhi layer's classification of a query."""
     query: str
     engine_scores: Dict[str, float]  # engine name -> confidence 0.0–1.0
     guna: Guna
     top_engines: List[str] = field(default_factory=list)
+    decision: Optional[RoutingDecision] = None
 
     def __post_init__(self):
         if not self.top_engines:
@@ -537,12 +546,22 @@ class VedantaEngine(DarshanaEngine):
     description = "Contradiction resolution, unifying abstractions, meta-reasoning"
 
     trigger_patterns = [
+        # Contradiction / tension language
         r"\b(contradict\w*|paradox\w*|conflict\w*|inconsisten\w*|tension)\b",
+        r"(\bbut\b.*\b(says?|think|believe|argue|is)|however|on the other hand)",
+        r"(seems? contradict\w*|doesn'?t make sense that|who'?s right)",
+        r"(say.+\bcorrect\b.+\bbut\b|say.+\bright\b.+\bbut\b|say.+\bbut\b.+\bsay)",
+        # Integration / synthesis language
         r"\b(unif\w*|synthes\w*|reconcil\w*|integrat\w*|harmoniz\w*)\b",
-        r"\b(bigger picture|underlying|deeper|fundamental|ultimate)\b",
-        r"(how (do|can) (these|they) .*(fit|work) together)",
-        r"\b(meta|abstract\w*|transcend\w*|beyond|overarching)\b",
+        r"(how do (these|they) fit|big(ger)? picture|what'?s really going on)",
+        # Abstract / deeper meaning
+        r"\b(underlying|deeper|fundamental|ultimate|overarching)\b",
+        r"(what does it (all )?mean|why does this matter|what'?s the point)",
+        # Opposing perspectives
         r"(both .+ and|neither .+ nor|on one hand)",
+        r"\b(vs\.?|versus|on the other)\b",
+        r"\b(meta|abstract\w*|transcend\w*|beyond)\b",
+        r"(how (do|can) (these|they) .*(fit|work) together)",
     ]
 
     def reason(self, query: str, context: Optional[Dict] = None) -> ReasoningOutput:
@@ -603,12 +622,22 @@ class MimamsaEngine(DarshanaEngine):
     description = "Text interpretation, command extraction, intent parsing, action inference"
 
     trigger_patterns = [
-        r"(what should (I|we) do|action\w*|next step|todo)",
-        r"\b(instruct\w*|command\w*|direct\w*|order\w*|requir\w*|spec\b)",
-        r"\b(interpret\w*|meaning|intent\w*|parse|extract\w*)\b",
+        # Action extraction
+        r"(what should (I|we) do|action\s*items?|next steps?|todo|obligations?)",
+        r"(what do they (actually )?want|tell me what to fix)",
+        # Text types that need interpretation
+        r"\b(meeting notes?|contract|email|spec\b|requirements?\s*doc)",
+        r"\b(error message|log message|stack trace)\b",
+        # Instruction / command language
+        r"\b(instruct\w*|command\w*|direct\w*|order\w*|requir\w*)\b",
+        r"\b(interpret\w*|intent\w*|parse|extract\w*)\b",
+        # Implementation / execution
         r"\b(implement\w*|execute|carry out|perform|build)\b",
         r"\b(requirement\w*|acceptance criteria|user stor\w*|task)\b",
+        # Procedural
         r"(how (do|should|to)|guide|procedure)",
+        # Obligation / duty language
+        r"(obligat\w*|we'?re (supposed|required|obligated) to|must we|need to do)",
     ]
 
     def reason(self, query: str, context: Optional[Dict] = None) -> ReasoningOutput:
@@ -673,11 +702,14 @@ class VaisheshikaEngine(DarshanaEngine):
 
     trigger_patterns = [
         r"(what is (this|it) made of|composed of|consists? of)",
-        r"\b(atom\w*|irreducib\w*|fundament\w*|primitiv\w*|elementary)\b",
+        r"\b(atom\w*|irreducib\w*|primitiv\w*|elementary)\b",
         r"\b(debug\w*|root cause|source of|origin of|where does)\b",
         r"\b(type|types?|kind|category|class of|ontolog\w*)\b",
         r"\b(smallest|minimal|simplest|basic|core unit)\b",
         r"\b(substance|propert\w*|qualit\w*|attribute\w*|inherent)\b",
+        r"(by property|one by one|each (field|attribute|property|element))",
+        r"\b(isolat\w*|pinpoint|narrow down|specific\w*|exact cause)\b",
+        r"(look\w* wrong|what'?s wrong|find the (bug|issue|error|problem))",
     ]
 
     def reason(self, query: str, context: Optional[Dict] = None) -> ReasoningOutput:
@@ -747,16 +779,25 @@ class DarshanaRouter:
         # full.reasoning -> [ReasoningOutput from samkhya engine]
     """
 
-    def __init__(self, activation_threshold: float = 0.3, max_engines: int = 2):
+    def __init__(
+        self,
+        activation_threshold: float = 0.3,
+        max_engines: int = 3,
+        depth_mode: Optional[str] = None,
+    ):
         """
         Args:
             activation_threshold: Minimum score for an engine to be activated.
                 Engines below this are considered irrelevant to the query.
             max_engines: Maximum number of engines to activate simultaneously.
-                Complex queries may trigger multiple darshanas.
+                Complex queries may trigger multiple darshanas. Default 3.
+            depth_mode: Override depth mode. "deep" (max 2 engines, more tokens
+                per engine) or "broad" (max 4 engines, less each). If None,
+                the router selects automatically based on score distribution.
         """
         self.activation_threshold = activation_threshold
         self.max_engines = max_engines
+        self.depth_mode_override = depth_mode
 
         self.engines: Dict[str, DarshanaEngine] = {
             "nyaya": NyayaEngine(),
@@ -770,6 +811,98 @@ class DarshanaRouter:
         self.guna_engine = GunaEngine()
         self.pramana_tagger = PramanaTagger()
 
+    def _select_engines(
+        self, sorted_engines: List[Tuple[str, float]]
+    ) -> Tuple[List[str], str, str]:
+        """
+        Smart depth selection: pick engines based on score distribution.
+
+        Returns (selected_engines, depth_mode, reasoning).
+
+        Rules:
+            1. Filter to engines above activation_threshold.
+            2. If the top engine has >2x the score of the second, go deep
+               (use only 1 engine).
+            3. If scores are close (within 30% of each other), activate
+               2-3 for multi-perspective analysis.
+            4. Respect max_engines cap and depth_mode override.
+        """
+        # Filter candidates above threshold
+        candidates = [
+            (name, score)
+            for name, score in sorted_engines
+            if score >= self.activation_threshold
+        ]
+
+        # Fallback: if nothing above threshold, take the top engine
+        if not candidates:
+            top_name = sorted_engines[0][0] if sorted_engines else "nyaya"
+            return (
+                [top_name],
+                "deep",
+                f"No engine scored above threshold; defaulting to top engine ({top_name}).",
+            )
+
+        top_name, top_score = candidates[0]
+
+        # Apply depth_mode override if set
+        if self.depth_mode_override == "deep":
+            effective_max = min(2, self.max_engines)
+        elif self.depth_mode_override == "broad":
+            effective_max = min(4, self.max_engines)
+        else:
+            effective_max = self.max_engines
+
+        # Rule: if top engine dominates (>2x second), go deep with just 1
+        if len(candidates) == 1:
+            return (
+                [top_name],
+                "deep",
+                f"Only {top_name} scored above threshold ({top_score:.3f}). Going deep.",
+            )
+
+        second_name, second_score = candidates[1]
+
+        if top_score > 2 * second_score and second_score > 0:
+            return (
+                [top_name],
+                "deep",
+                f"{top_name} ({top_score:.3f}) dominates {second_name} ({second_score:.3f}) "
+                f"by >2x. Going deep on single engine.",
+            )
+
+        # Rule: if scores are close (within 30%), activate multiple
+        close_engines = [top_name]
+        for name, score in candidates[1:]:
+            if score >= top_score * 0.7:  # within 30% of the top
+                close_engines.append(name)
+            else:
+                break
+
+        selected = close_engines[:effective_max]
+
+        if len(selected) == 1:
+            depth = "deep"
+            reasoning = f"Only {top_name} scored competitively ({top_score:.3f}). Going deep."
+        elif len(selected) <= 2:
+            depth = "deep"
+            score_summary = ", ".join(
+                f"{n}={s:.3f}" for n, s in candidates[: len(selected)]
+            )
+            reasoning = f"Close scores ({score_summary}). Deep multi-perspective analysis."
+        else:
+            depth = "broad"
+            score_summary = ", ".join(
+                f"{n}={s:.3f}" for n, s in candidates[: len(selected)]
+            )
+            reasoning = f"Multiple engines relevant ({score_summary}). Broad analysis."
+
+        # Allow depth_mode override to force the mode
+        if self.depth_mode_override in ("deep", "broad"):
+            depth = self.depth_mode_override
+
+        return selected, depth, reasoning
+
     def route(self, query: str) -> RoutingResult:
         """
         Classify a query and determine which engines should handle it.
@@ -778,27 +911,27 @@ class DarshanaRouter:
         expensive reasoning begins.
 
         Returns a RoutingResult with engine scores, the selected guna,
-        and the list of engines to activate.
+        the list of engines to activate, and a RoutingDecision with
+        depth intelligence.
         """
         scores = {name: engine.score(query) for name, engine in self.engines.items()}
         guna = self.guna_engine.classify(query)
 
         sorted_engines = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        top = [
-            name
-            for name, score in sorted_engines
-            if score >= self.activation_threshold
-        ][: self.max_engines]
+        selected, depth_mode, reasoning = self._select_engines(sorted_engines)
 
-        # Always activate at least one engine
-        if not top and sorted_engines:
-            top = [sorted_engines[0][0]]
+        decision = RoutingDecision(
+            selected_engines=selected,
+            depth_mode=depth_mode,
+            reasoning=reasoning,
+        )
 
         return RoutingResult(
             query=query,
             engine_scores=scores,
             guna=guna,
-            top_engines=top,
+            top_engines=selected,
+            decision=decision,
         )
 
     def route_and_reason(
@@ -809,7 +942,8 @@ class DarshanaRouter:
 
         This activates the top engine(s) and collects their structured
         reasoning output. In production, these outputs would be sent
-        to an LLM for execution.
+        to an LLM for execution. The RoutingDecision's depth_mode
+        informs how much compute each engine should receive.
 
         Args:
             query: The input query or problem.
@@ -823,7 +957,14 @@ class DarshanaRouter:
         routing = self.route(query)
         reasoning_outputs = []
 
-        for engine_name in routing.top_engines:
+        # Use the decision's selected_engines (ordered by relevance)
+        engines_to_use = (
+            routing.decision.selected_engines
+            if routing.decision
+            else routing.top_engines
+        )
+
+        for engine_name in engines_to_use:
             engine = self.engines[engine_name]
             output = engine.reason(query, context)
             output.guna = routing.guna

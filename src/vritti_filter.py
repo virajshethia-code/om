@@ -108,6 +108,27 @@ class Hetvabhasa(Enum):
     provided context or documents."""
 
 
+class Pramana(Enum):
+    """
+    The four pramanas (means of valid knowledge) from Nyaya philosophy.
+
+    Used by the Pramana Tagger in the Ahamkara layer to tag HOW a
+    knowledge claim was derived.
+    """
+
+    PRATYAKSHA = "pratyaksha"
+    """Direct perception — from input, tools, or empirical data."""
+
+    ANUMANA = "anumana"
+    """Inference — derived by reasoning from premises."""
+
+    UPAMANA = "upamana"
+    """Analogy — derived by comparison to something known."""
+
+    SHABDA = "shabda"
+    """Testimony — recalled from training data or cited authority."""
+
+
 @dataclass
 class VrittiResult:
     """Result of classifying a piece of text."""
@@ -125,6 +146,62 @@ class VrittiResult:
             "explanation": self.explanation,
             "fallacies": [f.value for f in self.fallacies],
             "suggestions": self.suggestions,
+        }
+
+
+@dataclass
+class ConsistencyMismatch:
+    """A single mismatch between vritti classification and pramana tag."""
+
+    vritti_label: str
+    pramana_label: str
+    flag: str
+    severity: float  # 0.0 to 1.0
+
+
+@dataclass
+class ConsistencyReport:
+    """Result of cross-validating vritti classification against pramana tags."""
+
+    consistent: bool
+    mismatches: list[ConsistencyMismatch] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "consistent": self.consistent,
+            "mismatches": [
+                {
+                    "vritti": m.vritti_label,
+                    "pramana": m.pramana_label,
+                    "flag": m.flag,
+                    "severity": round(m.severity, 3),
+                }
+                for m in self.mismatches
+            ],
+        }
+
+
+@dataclass
+class DepthScore:
+    """Result of the depth test for analysis quality."""
+
+    score: int  # 0-100
+    non_obvious_claims: int
+    specific_evidence_count: int
+    reasoning_chain_count: int
+    parallel_list_ratio: float
+    conclusion_follows: bool
+    breakdown: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "score": self.score,
+            "non_obvious_claims": self.non_obvious_claims,
+            "specific_evidence_count": self.specific_evidence_count,
+            "reasoning_chain_count": self.reasoning_chain_count,
+            "parallel_list_ratio": round(self.parallel_list_ratio, 3),
+            "conclusion_follows": self.conclusion_follows,
+            "breakdown": self.breakdown,
         }
 
 
@@ -229,6 +306,29 @@ SMRITI_PATTERNS: list[tuple[str, str]] = [
      "attributed factual recall"),
 ]
 
+# Indicators of DISGUISED SMRITI — text that sounds analytical but is
+# actually just organized recall. This is the pattern the Palestine
+# analysis exposed: "informed opinion that's really just memory."
+DISGUISED_SMRITI_PATTERNS: list[tuple[str, float, str]] = [
+    # "Everyone already knows this" signals
+    (r"\b(?:it'?s well[- ]known|as we all know|as everyone knows|obviously|"
+     r"of course|needless to say|it goes without saying|clearly)\b",
+     0.6, "common-knowledge framing — asserts what 'everyone knows' rather than deriving insight"),
+    # "Organized Wikipedia" signals — claim patterns that read like reference material
+    (r"\b(?:has been|have been|was|were)\s+(?:a |the )?(?:major|key|significant|important|central|"
+     r"critical|primary|fundamental|defining)\s+(?:factor|issue|challenge|concern|element|"
+     r"feature|aspect|driver|source|cause|part|player|force)\b",
+     0.5, "reference-book framing — uses 'X has been a key/major Y' encyclopedic structure"),
+    # General assertion without specific mechanism
+    (r"\b(?:this (?:has |)(?:led|leads|contributed|contributes) to|"
+     r"this (?:has |)resulted in|this (?:has |)created|"
+     r"this (?:has |)caused)\b",
+     0.3, "causal assertion without mechanism — states effect without explaining how"),
+    # Laundry-list structure: many parallel points, no chain
+    (r"(?:^|\n)\s*(?:[-*\d]+[.)]\s+).*(?:\n\s*(?:[-*\d]+[.)]\s+)){3,}",
+     0.7, "list-heavy structure — parallel enumeration rather than chained reasoning"),
+]
+
 # Indicators of VIPARYAYA (misconception / logical error)
 VIPARYAYA_PATTERNS: list[tuple[str, str]] = [
     (r"\b(always|never|all|none|every|no one)\b",
@@ -288,6 +388,10 @@ class VrittiFilter:
         self._compiled_smriti = [(re.compile(p, re.IGNORECASE), d) for p, d in SMRITI_PATTERNS]
         self._compiled_viparyaya = [(re.compile(p, re.IGNORECASE), d) for p, d in VIPARYAYA_PATTERNS]
         self._compiled_pramana = [(re.compile(p, re.IGNORECASE), d) for p, d in PRAMANA_INDICATORS]
+        self._compiled_disguised_smriti = [
+            (re.compile(p, re.IGNORECASE | re.MULTILINE), w, d)
+            for p, w, d in DISGUISED_SMRITI_PATTERNS
+        ]
 
     # ---- public API -------------------------------------------------------
 
@@ -328,6 +432,25 @@ class VrittiFilter:
             if pattern.search(text):
                 scores[Vritti.SMRITI] += 1.0
                 evidence[Vritti.SMRITI].append(desc)
+
+        # --- Disguised smriti detection (FIX 1) ---
+        for pattern, weight, desc in self._compiled_disguised_smriti:
+            if pattern.search(text):
+                scores[Vritti.SMRITI] += weight
+                evidence[Vritti.SMRITI].append(f"disguised recall: {desc}")
+
+        # Novelty score — penalise smriti-like text that masquerades as reasoning
+        _novelty = self.novelty_score(text)
+        if _novelty < 25:
+            scores[Vritti.SMRITI] += 1.5
+            evidence[Vritti.SMRITI].append(
+                f"low novelty score ({_novelty}/100) — mostly recalled knowledge"
+            )
+        elif _novelty < 50:
+            scores[Vritti.SMRITI] += 0.5
+            evidence[Vritti.SMRITI].append(
+                f"moderate novelty score ({_novelty}/100) — partially recalled"
+            )
 
         for pattern, desc in self._compiled_viparyaya:
             if pattern.search(text):
@@ -504,6 +627,325 @@ class VrittiFilter:
                 fallacies=r.fallacies,
             ))
         return results
+
+    # ---- FIX 1: novelty scoring ------------------------------------------
+
+    def novelty_score(self, text: str) -> int:
+        """
+        Estimate how much of the output is genuinely novel vs recalled.
+
+        Returns an integer 0-100 where:
+            0-25  = almost entirely recalled / common knowledge
+            26-50 = mix of recall and some fresh reasoning
+            51-75 = noticeable novel connections
+            76-100 = genuinely original analysis
+
+        Heuristics used:
+        - Surprising claim ratio: claims that wouldn't appear in a basic search
+        - Cross-domain bridging: connecting ideas from different domains
+        - Specific mechanism: "A causes B *because* of mechanism C"
+        - Absence of common-knowledge framing
+        """
+        score = 50  # start neutral
+
+        sentences = [s.strip() for s in re.split(r'[.!?]+', text) if len(s.strip()) > 10]
+        if not sentences:
+            return score
+
+        # Penalise common-knowledge framing
+        common_knowledge_phrases = re.findall(
+            r"\b(?:it'?s well[- ]known|as we all know|everyone knows|obviously|"
+            r"of course|needless to say|it goes without saying|clearly|"
+            r"it is widely (?:known|accepted|recognized|understood))\b",
+            text, re.IGNORECASE,
+        )
+        score -= len(common_knowledge_phrases) * 8
+
+        # Penalise encyclopedic "X has been a key/major Y" structures
+        reference_structures = re.findall(
+            r"\b(?:has been|have been|was|were)\s+(?:a |the )?(?:major|key|significant|"
+            r"important|central|critical|primary|fundamental|defining)\s+\w+\b",
+            text, re.IGNORECASE,
+        )
+        score -= len(reference_structures) * 6
+
+        # Reward cross-domain bridging ("like X in domain Y")
+        cross_domain = re.findall(
+            r"\b(?:similar to|analogous to|reminiscent of|just as|like)\s+.{5,40}\s+"
+            r"(?:in|from|within)\s+\w+",
+            text, re.IGNORECASE,
+        )
+        score += len(cross_domain) * 10
+
+        # Reward specific causal mechanisms (A because of B which leads to C)
+        mechanisms = re.findall(
+            r"\bbecause\s+.{10,80}(?:which|this|that)\s+(?:leads?|causes?|results?|means?|creates?|enables?)\b",
+            text, re.IGNORECASE,
+        )
+        score += len(mechanisms) * 12
+
+        # Reward genuine reasoning chains (therefore, thus, hence)
+        chains = re.findall(
+            r"\b(?:therefore|thus|hence|consequently|it follows that|this implies)\b",
+            text, re.IGNORECASE,
+        )
+        score += len(chains) * 5
+
+        # Penalise parallel list structure (many sentences starting the same way)
+        if len(sentences) >= 4:
+            starts = [s.split()[0].lower() if s.split() else "" for s in sentences]
+            # Check for bullet-point-like parallelism
+            most_common_start = max(set(starts), key=starts.count)
+            if starts.count(most_common_start) >= len(starts) * 0.5:
+                score -= 15
+
+        # Penalise if no sentence contains a surprise or counter-expectation
+        counter_expectation = re.findall(
+            r"\b(?:surprisingly|unexpectedly|counter-?intuitively|contrary to|"
+            r"what.{0,20}miss(?:es|ed|ing)|overlooked|underappreciated|"
+            r"the real (?:issue|question|problem)|actually)\b",
+            text, re.IGNORECASE,
+        )
+        if not counter_expectation:
+            score -= 10
+
+        return max(0, min(100, score))
+
+    # ---- FIX 2: pramana-vritti cross-validation ---------------------------
+
+    def cross_validate(
+        self, vritti_result: VrittiResult, pramana_tag: Pramana
+    ) -> ConsistencyReport:
+        """
+        Check for mismatches between vritti classification and pramana tag.
+
+        The vritti classification says WHAT kind of mental modification the
+        output is; the pramana tag says HOW the knowledge was derived. If
+        these two disagree, the output is internally inconsistent.
+
+        Args:
+            vritti_result: The classification from classify().
+            pramana_tag: The pramana tag assigned by the Pramana Tagger.
+
+        Returns:
+            ConsistencyReport with any mismatches found.
+        """
+        mismatches: list[ConsistencyMismatch] = []
+
+        v = vritti_result.vritti
+        p = pramana_tag
+        conf = vritti_result.confidence
+
+        # PRAMANA vritti + SHABDA pramana:
+        # "presented as valid reasoning but the source is training data"
+        if v == Vritti.PRAMANA and p == Pramana.SHABDA:
+            mismatches.append(ConsistencyMismatch(
+                vritti_label=v.value,
+                pramana_label=p.value,
+                flag=(
+                    "This is presented as valid reasoning but the source is "
+                    "training data (shabda). The claims may be correct but "
+                    "should be labelled as recalled, not freshly derived."
+                ),
+                severity=0.7,
+            ))
+
+        # PRAMANA vritti + ANUMANA pramana + low confidence:
+        # "weak inference presented as established fact"
+        if v == Vritti.PRAMANA and p == Pramana.ANUMANA and conf < 0.6:
+            mismatches.append(ConsistencyMismatch(
+                vritti_label=v.value,
+                pramana_label=p.value,
+                flag=(
+                    "Weak inference presented as established fact. Confidence "
+                    f"is only {conf:.0%} but the output reads as certain. "
+                    "Qualify the claims or strengthen the reasoning chain."
+                ),
+                severity=0.6,
+            ))
+
+        # SMRITI vritti + PRATYAKSHA pramana:
+        # "memory recall presented as direct observation"
+        if v == Vritti.SMRITI and p == Pramana.PRATYAKSHA:
+            mismatches.append(ConsistencyMismatch(
+                vritti_label=v.value,
+                pramana_label=p.value,
+                flag=(
+                    "Memory recall presented as direct observation. The content "
+                    "is classified as remembered knowledge (smriti) but tagged "
+                    "as if derived from direct perception (pratyaksha)."
+                ),
+                severity=0.8,
+            ))
+
+        # VIPARYAYA vritti + PRATYAKSHA pramana:
+        # "misconception sourced from supposedly direct observation"
+        if v == Vritti.VIPARYAYA and p == Pramana.PRATYAKSHA:
+            mismatches.append(ConsistencyMismatch(
+                vritti_label=v.value,
+                pramana_label=p.value,
+                flag=(
+                    "Misconception attributed to direct observation. Either the "
+                    "observation was misinterpreted or the pramana tag is wrong."
+                ),
+                severity=0.9,
+            ))
+
+        # PRAMANA vritti + SHABDA pramana + high SMRITI score from novelty:
+        # This catches the Palestine case — "valid analysis" that's really recall
+        if v == Vritti.PRAMANA and p == Pramana.SHABDA:
+            # Already caught above, but we can add nuance
+            pass
+
+        return ConsistencyReport(
+            consistent=len(mismatches) == 0,
+            mismatches=mismatches,
+        )
+
+    # ---- FIX 3: depth test -----------------------------------------------
+
+    def depth_test(self, text: str, query: str) -> DepthScore:
+        """
+        Test whether analysis is genuinely deep or surface-level.
+
+        Checks:
+        1. Non-obvious claims (claims that wouldn't appear in a basic search)
+        2. Specific evidence vs general assertions
+        3. Genuine reasoning chains (A -> B -> C) vs parallel points
+        4. Whether conclusions follow from the specific analysis
+
+        Args:
+            text: The analysis text to evaluate.
+            query: The original query that prompted the analysis.
+
+        Returns:
+            DepthScore (0-100) with breakdown.
+        """
+        sentences = [s.strip() for s in re.split(r'[.!?]+', text) if len(s.strip()) > 10]
+        word_count = len(text.split())
+
+        if not sentences or word_count < 20:
+            return DepthScore(
+                score=0, non_obvious_claims=0, specific_evidence_count=0,
+                reasoning_chain_count=0, parallel_list_ratio=1.0,
+                conclusion_follows=False,
+                breakdown={"reason": "text too short for depth analysis"},
+            )
+
+        # 1. Count non-obvious claims
+        # A claim is "non-obvious" if it contains a counter-expectation marker
+        # or connects two concepts not already adjacent in the query
+        non_obvious = 0
+        non_obvious_markers = re.compile(
+            r"\b(?:surprisingly|unexpectedly|counter-?intuitively|"
+            r"what.{0,20}(?:miss|overlook|ignore)|"
+            r"the (?:real|actual|deeper|underlying|specific) (?:issue|problem|cause|reason|fix)|"
+            r"actually|in fact|however.{5,40}this means|"
+            r"not (?:just |merely |simply )|(?:isn't|is not) (?:just |merely |simply )|more than just|"
+            r"beneath (?:the|this)|the hidden|less obvious|"
+            r"which in turn|this specific)\b",
+            re.IGNORECASE,
+        )
+        for s in sentences:
+            if non_obvious_markers.search(s):
+                non_obvious += 1
+
+        # 2. Count specific evidence (numbers, dates, names, URLs, measurements)
+        specific_evidence = 0
+        evidence_pattern = re.compile(
+            r"(?:\d+(?:[,.\d]+)?%|\$[\d,.]+|\d{4}|https?://\S+|"
+            r"line \d+|version \d+|p\d+ |"
+            r"\b\d[\d,.]*\s*(?:ms|MB|GB|KB|TB|rows|requests|users|bytes|"
+            r"connections|seconds|minutes|hours|objects?|items?)\b|"
+            r"\b\d[\d,.]*(?:KB|MB|GB)\b)",
+            re.IGNORECASE,
+        )
+        for s in sentences:
+            if evidence_pattern.search(s):
+                specific_evidence += 1
+
+        # 3. Count genuine reasoning chains (A therefore B therefore C)
+        # Look for connectives that chain BETWEEN sentences
+        chain_connectives = re.compile(
+            r"\b(?:therefore|thus|hence|consequently|it follows|"
+            r"this (?:means|implies|suggests|indicates|shows) that|"
+            r"from this we (?:can|must)|which in turn|"
+            r"building on this|as a result of this)\b",
+            re.IGNORECASE,
+        )
+        chain_count = len(chain_connectives.findall(text))
+
+        # 4. Check parallel list ratio — are sentences independent or chained?
+        # Independent parallel points = low depth; chained reasoning = high depth
+        parallel_markers = re.compile(
+            r"(?:^|\n)\s*(?:[-*]|\d+[.)]) ",
+            re.MULTILINE,
+        )
+        parallel_count = len(parallel_markers.findall(text))
+        parallel_ratio = parallel_count / max(len(sentences), 1)
+
+        # 5. Check if conclusions follow from the analysis
+        # Look for a concluding section that references earlier points
+        conclusion_follows = False
+        # Find last 2 sentences
+        if len(sentences) >= 3:
+            last_sentences = " ".join(sentences[-2:]).lower()
+            earlier_content = " ".join(sentences[:-2]).lower()
+
+            # Does the conclusion reference specific terms from the analysis?
+            conclusion_terms = set(re.findall(r"\b\w{5,}\b", last_sentences))
+            analysis_terms = set(re.findall(r"\b\w{5,}\b", earlier_content))
+
+            # Remove generic terms
+            generic = {"about", "which", "there", "their", "would", "could",
+                        "should", "these", "those", "where", "being", "other",
+                        "after", "before", "between", "through", "during"}
+            conclusion_specific = conclusion_terms - generic
+            analysis_specific = analysis_terms - generic
+
+            if conclusion_specific and analysis_specific:
+                overlap = conclusion_specific & analysis_specific
+                if len(overlap) / max(len(conclusion_specific), 1) > 0.3:
+                    # Also check the conclusion has a chain connective
+                    if chain_connectives.search(" ".join(sentences[-2:])):
+                        conclusion_follows = True
+
+        # --- Compute score ---
+        score = 0
+
+        # Non-obvious claims: up to 25 points
+        score += min(25, non_obvious * 10)
+
+        # Specific evidence: up to 25 points
+        evidence_ratio = specific_evidence / max(len(sentences), 1)
+        score += min(25, int(evidence_ratio * 50))
+
+        # Reasoning chains: up to 25 points
+        score += min(25, chain_count * 8)
+
+        # Low parallel ratio + conclusion follows: up to 25 points
+        if parallel_ratio < 0.3:
+            score += 10
+        if conclusion_follows:
+            score += 15
+
+        score = max(0, min(100, score))
+
+        return DepthScore(
+            score=score,
+            non_obvious_claims=non_obvious,
+            specific_evidence_count=specific_evidence,
+            reasoning_chain_count=chain_count,
+            parallel_list_ratio=round(parallel_ratio, 3),
+            conclusion_follows=conclusion_follows,
+            breakdown={
+                "non_obvious_points": min(25, non_obvious * 10),
+                "evidence_points": min(25, int(evidence_ratio * 50)),
+                "chain_points": min(25, chain_count * 8),
+                "structure_points": (10 if parallel_ratio < 0.3 else 0)
+                    + (15 if conclusion_follows else 0),
+            },
+        )
 
     # ---- private helpers --------------------------------------------------
 

@@ -22,6 +22,10 @@ from src.vritti_filter import (
     MayaLayer,
     KarmaStore,
     Vritti,
+    Pramana,
+    ConsistencyReport,
+    DepthScore,
+    VrittiResult,
 )
 
 
@@ -326,3 +330,157 @@ class TestKarmaStore:
         summary = karma_store.summary()
         assert summary["total_samskaras"] == 0
         assert summary["domains"] == []
+
+
+# ---------------------------------------------------------------------------
+# FIX 1: Disguised Smriti / Novelty Score Tests
+# ---------------------------------------------------------------------------
+
+class TestDisguisedSmriti:
+    """Tests for detecting recall disguised as analysis."""
+
+    def test_organized_recall_caught(self, vf):
+        """Text that sounds analytical but is just organized common knowledge.
+
+        This is the Palestine failure mode: every claim could be found on
+        Wikipedia, presented in analytical framing ('key factor',
+        'has been a major issue') but containing no novel reasoning.
+        """
+        text = (
+            "The Israeli-Palestinian conflict has been a major source of "
+            "instability in the Middle East. It's well known that the "
+            "occupation has been a key factor in the ongoing tensions. "
+            "The settlements have been a significant obstacle to peace. "
+            "Obviously, the humanitarian situation has been a critical "
+            "concern for the international community. As everyone knows, "
+            "the two-state solution has been the primary diplomatic "
+            "framework discussed by world leaders."
+        )
+        result = vf.classify(text)
+        assert result.vritti == Vritti.SMRITI, (
+            f"Expected smriti for disguised recall, got {result.vritti.value}"
+        )
+
+    def test_novelty_score_low_for_common_knowledge(self, vf):
+        """Novelty score should be low for organized common knowledge."""
+        text = (
+            "Obviously, climate change has been a major challenge for the "
+            "world. It's well known that rising temperatures have caused "
+            "sea levels to rise. As everyone knows, carbon emissions have "
+            "been a key driver of global warming."
+        )
+        score = vf.novelty_score(text)
+        assert score < 30, f"Expected novelty < 30 for common knowledge, got {score}"
+
+    def test_novelty_score_high_for_genuine_insight(self, vf):
+        """Novelty score should be high for text with genuine novel connections."""
+        text = (
+            "What most analyses of database performance miss is that the "
+            "bottleneck isn't the query engine — it's the serialization layer. "
+            "Because each row must be deserialized from the on-disk format, "
+            "which involves memory allocation, this creates GC pressure that "
+            "causes latency spikes. This implies that columnar storage isn't "
+            "just faster for analytics — it actually reduces garbage collection "
+            "overhead, which is the real reason Parquet outperforms row-based "
+            "formats in JVM-based systems."
+        )
+        score = vf.novelty_score(text)
+        assert score > 50, f"Expected novelty > 50 for genuine insight, got {score}"
+
+
+# ---------------------------------------------------------------------------
+# FIX 2: Cross-Validation Tests
+# ---------------------------------------------------------------------------
+
+class TestCrossValidation:
+    """Tests for pramana-vritti cross-validation."""
+
+    def test_pramana_shabda_mismatch(self, vf):
+        """If vritti is PRAMANA but pramana is SHABDA, flag the mismatch.
+
+        This catches the case where training-data recall is presented
+        as freshly validated cognition.
+        """
+        vritti_result = VrittiResult(
+            vritti=Vritti.PRAMANA,
+            confidence=0.8,
+            explanation="test",
+        )
+        report = vf.cross_validate(vritti_result, Pramana.SHABDA)
+        assert not report.consistent
+        assert len(report.mismatches) == 1
+        assert "training data" in report.mismatches[0].flag
+
+    def test_pramana_anumana_low_confidence(self, vf):
+        """Weak inference presented as established fact."""
+        vritti_result = VrittiResult(
+            vritti=Vritti.PRAMANA,
+            confidence=0.4,
+            explanation="test",
+        )
+        report = vf.cross_validate(vritti_result, Pramana.ANUMANA)
+        assert not report.consistent
+        assert "Weak inference" in report.mismatches[0].flag
+
+    def test_smriti_pratyaksha_mismatch(self, vf):
+        """Memory recall presented as direct observation."""
+        vritti_result = VrittiResult(
+            vritti=Vritti.SMRITI,
+            confidence=0.7,
+            explanation="test",
+        )
+        report = vf.cross_validate(vritti_result, Pramana.PRATYAKSHA)
+        assert not report.consistent
+        assert "direct observation" in report.mismatches[0].flag
+
+    def test_consistent_pramana_pratyaksha(self, vf):
+        """Valid cognition from direct observation — should be consistent."""
+        vritti_result = VrittiResult(
+            vritti=Vritti.PRAMANA,
+            confidence=0.9,
+            explanation="test",
+        )
+        report = vf.cross_validate(vritti_result, Pramana.PRATYAKSHA)
+        assert report.consistent
+        assert len(report.mismatches) == 0
+
+
+# ---------------------------------------------------------------------------
+# FIX 3: Depth Test
+# ---------------------------------------------------------------------------
+
+class TestDepthTest:
+    """Tests for the analysis depth scorer."""
+
+    def test_shallow_list_scores_low(self, vf):
+        """Parallel list of general assertions should score low."""
+        text = (
+            "There are several important considerations. First, cost is a "
+            "factor. Second, performance matters. Third, security is key. "
+            "Fourth, scalability is important. Fifth, maintainability counts."
+        )
+        depth = vf.depth_test(text, "What should I consider for my architecture?")
+        assert depth.score < 30, f"Expected depth < 30, got {depth.score}"
+
+    def test_deep_analysis_scores_high(self, vf):
+        """Genuine reasoning chain with evidence should score high."""
+        text = (
+            "The memory leak originates in the WebSocket handler. Data shows "
+            "each connection allocates a 64KB buffer that is never freed on "
+            "disconnect — 12,847 unreleased Buffer objects after 3 hours of "
+            "load testing with 500 connections, consuming 803MB. Therefore "
+            "the OOM kill at hour 4 is caused by this specific leak. This "
+            "implies that the fix is not to increase memory limits but to call "
+            "buffer.release() in the on_close callback, which in turn means "
+            "the issue will recur in any handler that creates buffers without "
+            "a cleanup hook."
+        )
+        depth = vf.depth_test(text, "Why does the server crash after 4 hours?")
+        assert depth.score >= 50, f"Expected depth >= 50, got {depth.score}"
+        assert depth.specific_evidence_count >= 1
+        assert depth.reasoning_chain_count >= 1
+
+    def test_short_text_scores_zero(self, vf):
+        """Very short text can't be deep."""
+        depth = vf.depth_test("Yes.", "Should I use React?")
+        assert depth.score == 0
