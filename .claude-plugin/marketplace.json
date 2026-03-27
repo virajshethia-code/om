@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "darshana-local",
+  "description": "Local marketplace for the Darshana Architecture plugin",
+  "owner": {
+    "name": "Viraj",
+    "email": "viraj@heft.in"
+  },
+  "plugins": [
+    {
+      "name": "darshana",
+      "description": "Cognitive architecture drawn from Hindu philosophy - reasoning modes based on the Shaddarshana",
+      "version": "0.2.0",
+      "author": {
+        "name": "Viraj",
+        "email": "viraj@heft.in"
+      },
+      "source": "./plugin"
+    }
+  ]
+}
