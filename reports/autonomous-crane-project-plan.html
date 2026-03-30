@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project VAYU — Autonomous Crane Programme</title>
+<style>
+
+:root {
+  --bg: #0a0a0a;
+  --card: #141414;
+  --border: #2a2a2a;
+  --text: #e0e0e0;
+  --muted: #888;
+  --accent: #f59e0b;
+  --accent2: #8b5cf6;
+  --red: #ef4444;
+  --green: #22c55e;
+  --blue: #3b82f6;
+  --orange: #f97316;
+  --cyan: #06b6d4;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Georgia', serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  padding: 2rem;
+  max-width: 1020px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  body { padding: 1rem; }
+  h1 { font-size: 1.5rem; }
+  .timeline-grid { grid-template-columns: 1fr !important; }
+}
+
+h1 {
+  font-size: 2.2rem;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 0.3rem;
+  font-size: 0.95rem;
+}
+
+.sanskrit {
+  color: var(--accent2);
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+  font-style: italic;
+}
+
+h2 {
+  font-size: 1.35rem;
+  color: var(--accent2);
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+h2 .tag {
+  font-size: 0.7rem;
+  background: var(--accent2);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+h3 {
+  font-size: 1.05rem;
+  color: var(--text);
+  margin-top: 1.2rem;
+  margin-bottom: 0.6rem;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-accent {
+  border-left: 3px solid var(--accent);
+}
+
+.card-green {
+  border-left: 3px solid var(--green);
+}
+
+.card-blue {
+  border-left: 3px solid var(--blue);
+}
+
+.card-red {
+  border-left: 3px solid var(--red);
+}
+
+.card-purple {
+  border-left: 3px solid var(--accent2);
+}
+
+.card-cyan {
+  border-left: 3px solid var(--cyan);
+}
+
+.card-orange {
+  border-left: 3px solid var(--orange);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+th {
+  text-align: left;
+  padding: 0.6rem;
+  border-bottom: 2px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+td {
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.phase-number {
+  background: var(--accent);
+  color: #000;
+  font-weight: bold;
+  font-size: 1.5rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.phase-meta {
+  flex: 1;
+}
+
+.phase-title {
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.phase-timeline {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-family: monospace;
+}
+
+.milestone {
+  background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.02));
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  padding: 0.8rem 1.2rem;
+  margin: 0.8rem 0;
+  font-size: 0.9rem;
+}
+
+.milestone-label {
+  color: var(--green);
+  font-weight: bold;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.risk-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.risk-high { background: rgba(239,68,68,0.2); color: var(--red); }
+.risk-med { background: rgba(249,115,22,0.2); color: var(--orange); }
+.risk-low { background: rgba(34,197,94,0.2); color: var(--green); }
+
+.cost-table td:last-child {
+  font-family: monospace;
+  text-align: right;
+  color: var(--accent);
+}
+
+.gantt {
+  margin: 1.5rem 0;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.gantt-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.gantt-label {
+  color: var(--muted);
+  text-align: right;
+  padding-right: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.gantt-bar-container {
+  position: relative;
+  height: 22px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.gantt-bar {
+  position: absolute;
+  height: 100%;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+  font-size: 0.7rem;
+  color: #000;
+  font-weight: bold;
+}
+
+.gantt-months {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 0.5rem;
+  margin-bottom: 8px;
+}
+
+.gantt-month-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.synthesis-box {
+  background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(139,92,246,0.08));
+  border: 1px solid var(--accent);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+}
+
+.synthesis-box blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: var(--accent);
+  font-style: italic;
+  font-size: 1.05rem;
+}
+
+.decision-box {
+  background: rgba(139,92,246,0.08);
+  border: 1px solid var(--accent2);
+  border-radius: 8px;
+  padding: 1.2rem;
+  margin: 1rem 0;
+}
+
+.decision-label {
+  color: var(--accent2);
+  font-weight: bold;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.3rem;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.team-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.team-role {
+  color: var(--accent);
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.team-count {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.dep-arrow {
+  color: var(--accent);
+  font-family: monospace;
+}
+
+ul {
+  margin: 0.5rem 0 0.5rem 1.5rem;
+}
+
+li {
+  margin-bottom: 0.3rem;
+}
+
+.footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+</style>
+</head>
+<body>
+
+<h1>Project VAYU</h1>
+<p class="subtitle">Autonomous Crane Programme — Heft Energy &amp; Heavy Equipment</p>
+<p class="sanskrit">"vayu" — the wind god, force that moves. From windmill sites to autonomous lift.</p>
+
+<!-- ============================================================ -->
+<!-- EXECUTIVE SUMMARY -->
+<!-- ============================================================ -->
+
+<h2>Executive Summary <span class="tag">Board View</span></h2>
+
+<div class="card card-accent">
+  <p><strong>Objective:</strong> Build India's first autonomous crane capability, starting with a single lift cycle on windmill erection sites, using Heft's existing Sany STC 1600 (160T) fleet.</p>
+
+  <p style="margin-top:0.8rem"><strong>First Target:</strong> Autonomous loading/unloading of turbine components (tower sections, blades, nacelles) from transport trucks to staging areas on wind farm sites.</p>
+
+  <p style="margin-top:0.8rem"><strong>Why this lift:</strong> Ground-to-ground, single crane, predictable loads, 300+ repetitions per 50-turbine site, lowest consequence of failure. If the system makes a mistake, a tower section sits down hard. Nobody falls from 80 metres.</p>
+
+  <p style="margin-top:0.8rem"><strong>Approach:</strong> Retrofit one STC 1600 with sensors + controls. Use Claude AI as the primary research and algorithm design engine, with 2 in-house controls engineers for physical integration. Lightweight IIT advisory for regulatory credibility. Prove safety with 1,000 supervised lifts before any unsupervised operation.</p>
+
+  <table>
+    <tr><th>Parameter</th><th>Value</th></tr>
+    <tr><td>Total programme duration</td><td>36 months to first commercial deployment</td></tr>
+    <tr><td>Estimated investment (Phase 1-5)</td><td>&#8377;7,50,00,000 — &#8377;10,50,00,000</td></tr>
+    <tr><td>First autonomous lift (supervised)</td><td>Month 14-16</td></tr>
+    <tr><td>1,000-lift safety milestone</td><td>Month 24-28</td></tr>
+    <tr><td>Commercial deployment</td><td>Month 30-36</td></tr>
+    <tr><td>Crane model</td><td>Sany STC 1600 (160T truck crane)</td></tr>
+    <tr><td>First site type</td><td>Windmill erection — material handling</td></tr>
+    <tr><td>Controls approach</td><td>Claude AI (research/design) + internal engineers (hardware) + IIT advisory (credibility)</td></tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- STRATEGIC DECISIONS (LOCKED) -->
+<!-- ============================================================ -->
+
+<h2>Strategic Decisions <span class="tag">Locked</span></h2>
+
+<div class="decision-box">
+  <div class="decision-label">Decision 1 — Crane Model</div>
+  <p><strong>Sany STC 1600 (160T truck crane)</strong> — High unit count in Heft fleet, primary workhorse on windmill erection sites. Sany provides accessible technical documentation and parts supply chain.</p>
+</div>
+
+<div class="decision-box">
+  <div class="decision-label">Decision 2 — First Lift Cycle</div>
+  <p><strong>Loading/unloading turbine components at wind farm sites</strong> — Tower sections (cylinders, known weight), blades (long, standardised), nacelles (heavy, consistent). Pick from truck, place in staging area. Ground-to-ground, single crane, 300+ reps per project.</p>
+</div>
+
+<div class="decision-box">
+  <div class="decision-label">Decision 3 — Controls Approach</div>
+  <p><strong>Claude AI + Internal Engineers + IIT Advisory.</strong> Claude handles all research, algorithm design, simulation, and software architecture — faster and cheaper than a full lab partnership. Two in-house controls engineers handle physical integration, on-crane testing, and hardware tuning. A lightweight IIT advisory relationship (1 professor, quarterly reviews) provides regulatory credibility and a safety net for edge cases in nonlinear dynamics. Robotics startup acquisition remains a future option. Full IP ownership with Heft from day one.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- THE HYBRID MODEL -->
+<!-- ============================================================ -->
+
+<h2>The Hybrid Model <span class="tag">Claude + Engineers + IIT Advisory</span></h2>
+
+<div class="card card-cyan">
+  <p>Instead of a full IIT research partnership (&#8377;80L, academic pace, joint IP), this plan uses a three-layer model that is faster, cheaper, and gives Heft 100% IP ownership:</p>
+
+  <table>
+    <tr><th>Layer</th><th>Who</th><th>What They Do</th><th>Cost</th></tr>
+    <tr>
+      <td style="color:var(--cyan)"><strong>Research &amp; Design</strong></td>
+      <td>Claude AI</td>
+      <td>Literature review (100+ papers in hours, not months). Algorithm design &amp; simulation. Software architecture. Safety case drafting. Documentation. Available 24/7, no academic calendar, no IP sharing.</td>
+      <td>&#8377;2-4L/yr</td>
+    </tr>
+    <tr>
+      <td style="color:var(--accent)"><strong>Physical Integration</strong></td>
+      <td>2 Controls Engineers (in-house)</td>
+      <td>Implement Claude's algorithms on real hardware. Tune controllers on the physical crane. Handle sensor noise, hydraulic backlash, temperature effects — the 20% that simulation cannot capture. On-site for every test.</td>
+      <td>Already in team budget</td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted)"><strong>Credibility &amp; Safety Net</strong></td>
+      <td>IIT Professor (advisory)</td>
+      <td>Quarterly review of control system design. Validates Claude's algorithm choices. Name on safety validation report for regulators. Edge case identification from 20+ years of nonlinear dynamics expertise. Talent pipeline to graduating students.</td>
+      <td>&#8377;10-15L/yr</td>
+    </tr>
+  </table>
+
+  <div class="decision-box">
+    <div class="decision-label">Why This Works Better</div>
+    <p><strong>Speed:</strong> Claude delivers a literature review in hours, not semesters. Algorithm iteration happens daily, not quarterly.<br>
+    <strong>Cost:</strong> &#8377;33L total vs &#8377;80L for full IIT partnership — &#8377;47L saved.<br>
+    <strong>IP:</strong> 100% Heft ownership. Advisory relationship, not joint research.<br>
+    <strong>Credibility:</strong> IIT professor's name still on the validation report — regulators see institutional backing.<br>
+    <strong>Risk:</strong> Slightly higher on physical tuning (no lab team), mitigated by hiring controls engineers 2 months earlier (Month 2 vs original Month 4-6).</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- VISUAL TIMELINE -->
+<!-- ============================================================ -->
+
+<h2>Programme Timeline <span class="tag">36 Months</span></h2>
+
+<div class="card">
+  <div class="gantt">
+    <div class="gantt-months">
+      <div></div>
+      <div class="gantt-month-labels">
+        <span>M0</span><span>M6</span><span>M12</span><span>M18</span><span>M24</span><span>M30</span><span>M36</span>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label">Phase 1: Foundation</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:0%; width:22%; background:var(--blue);">M0-M8</div>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label">Phase 2: Prototype</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:17%; width:25%; background:var(--accent2);">M6-M15</div>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label">Phase 3: Validation</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:39%; width:25%; background:var(--orange);">M14-M23</div>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label">Phase 4: Safety Proof</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:58%; width:25%; background:var(--green);">M21-M30</div>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label">Phase 5: Scale</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:78%; width:22%; background:var(--accent);">M28-M36</div>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label" style="color:var(--green)">Regulatory track</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:8%; width:72%; background:rgba(34,197,94,0.3); color:var(--green);">Ongoing M3-M30</div>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label" style="color:var(--cyan)">Claude AI (research)</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:0%; width:83%; background:rgba(6,182,212,0.3); color:var(--cyan);">M0-M30 (continuous)</div>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label" style="color:var(--red)">Internal team build</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:6%; width:78%; background:rgba(239,68,68,0.3); color:var(--red);">M2-M31</div>
+      </div>
+    </div>
+
+    <div class="gantt-row">
+      <div class="gantt-label" style="color:var(--muted)">IIT advisory</div>
+      <div class="gantt-bar-container">
+        <div class="gantt-bar" style="left:8%; width:64%; background:rgba(136,136,136,0.2); color:var(--muted);">M3-M26 (quarterly)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PHASE 1 -->
+<!-- ============================================================ -->
+
+<h2>Phase 1: Foundation <span class="tag">Month 0–8</span></h2>
+
+<div class="card card-blue">
+  <div class="phase-header">
+    <div class="phase-number">1</div>
+    <div class="phase-meta">
+      <div class="phase-title">Sense, Learn, Build the Brain Trust</div>
+      <div class="phase-timeline">Duration: 8 months &nbsp;|&nbsp; Investment: &#8377;1,00,00,000 — &#8377;1,40,00,000</div>
+    </div>
+  </div>
+
+  <h3>1.1 — Instrument One STC 1600 (Month 0–3)</h3>
+  <p>Retrofit one crane with a full sensor suite. The goal is NOT autonomy yet — it is <strong>data collection</strong>. Record everything a human operator does for 6 months so you know what "normal" looks like.</p>
+
+  <table>
+    <tr><th>Sensor</th><th>Purpose</th><th>Estimated Cost</th></tr>
+    <tr><td>LiDAR (Ouster OS1-128)</td><td>3D site mapping, obstacle detection</td><td>&#8377;12,00,000</td></tr>
+    <tr><td>Stereo cameras (x4)</td><td>Object ID, human detection, rigging view</td><td>&#8377;4,00,000</td></tr>
+    <tr><td>Boom-tip camera</td><td>Hook/load view from above</td><td>&#8377;80,000</td></tr>
+    <tr><td>IMU array (boom + cab + hook)</td><td>Sway, tilt, acceleration</td><td>&#8377;2,50,000</td></tr>
+    <tr><td>Load cells (hook + 4 outriggers)</td><td>Weight, ground pressure</td><td>&#8377;3,00,000</td></tr>
+    <tr><td>GPS/RTK base + rover</td><td>Centimetre-accurate position</td><td>&#8377;5,00,000</td></tr>
+    <tr><td>Anemometer + wind vane</td><td>Wind speed/direction</td><td>&#8377;60,000</td></tr>
+    <tr><td>Industrial PC + data logger</td><td>Record all sensor data + operator inputs</td><td>&#8377;4,00,000</td></tr>
+    <tr><td><strong>Total sensor package</strong></td><td></td><td><strong>&#8377;31,90,000</strong></td></tr>
+  </table>
+
+  <h3>1.2 — Claude AI: Research &amp; Algorithm Design Sprint (Month 0–4)</h3>
+  <p>Use Claude as the primary research engine to do what an IIT lab would take 6-12 months to deliver — in weeks:</p>
+  <ul>
+    <li><strong>Literature review:</strong> Exhaustive survey of anti-sway control algorithms (MPC, input shaping, sliding-mode control, energy-based methods). Claude reviews 100+ papers, extracts the algorithms, identifies which are proven on similar crane types.</li>
+    <li><strong>Algorithm design:</strong> Claude designs the anti-sway controller architecture — model-predictive control with wind disturbance feedforward, tuned for the STC 1600's boom geometry and hydraulic response characteristics.</li>
+    <li><strong>Simulation environment:</strong> Claude builds a full Python/MATLAB simulation of the STC 1600 — pendulum dynamics, cable length effects, wind disturbance, hydraulic actuator delays. Validated against Phase 1 sensor data.</li>
+    <li><strong>Lift planner:</strong> Claude architects and codes the path planning software — pick/place optimisation within load chart constraints.</li>
+    <li><strong>Safety case drafting:</strong> Claude drafts the IEC 61508 safety case structure, hazard analysis, and fault trees. Human safety engineer reviews and signs off.</li>
+    <li>Budget: Claude Code subscriptions + compute — &#8377;2,00,000 — &#8377;4,00,000/year</li>
+  </ul>
+
+  <h3>1.3 — IIT Advisory Setup (Month 3)</h3>
+  <p>Establish a lightweight advisory relationship with IIT Bombay or IIT Madras — NOT a full research partnership:</p>
+  <ul>
+    <li>1 professor as technical advisor, quarterly reviews of control system design</li>
+    <li>Professor validates Claude's algorithm choices and simulation models</li>
+    <li>IIT name on the safety validation report — critical for regulatory credibility</li>
+    <li>Option to hire graduating students who are familiar with the project</li>
+    <li>Budget: &#8377;10,00,000 — &#8377;15,00,000/year (advisory fee + student stipends)</li>
+    <li><strong>100% IP remains with Heft</strong> — advisory, not joint research</li>
+  </ul>
+
+  <h3>1.4 — Data Collection on Live Sites (Month 3–8)</h3>
+  <p>Deploy the instrumented crane to 2-3 windmill erection sites. Record every loading/unloading cycle with full sensor data + operator joystick inputs. Target: <strong>500+ recorded lift cycles</strong>.</p>
+  <ul>
+    <li>Data captured per lift: sensor streams, operator control inputs (joystick position, timing), load weight, wind conditions, cycle time, any near-miss or correction</li>
+    <li>This data becomes the training set for the planning system and the baseline for proving autonomous lifts are at least as safe as human lifts</li>
+    <li>Assign one site engineer to tag each lift with metadata (load type, weight, pick/place coordinates, weather, any anomaly)</li>
+  </ul>
+
+  <h3>1.5 — Hire Safety Engineer (Month 2)</h3>
+  <p>Hire one functional safety engineer with IEC 61508 / ISO 13849 experience. This person writes the safety case BEFORE any control software is written. The safety case defines what the software must guarantee — not the other way around.</p>
+
+  <div class="milestone">
+    <div class="milestone-label">Phase 1 Gate — Month 8</div>
+    <strong>Pass criteria:</strong> 500+ lift cycles recorded with full sensor data. Claude-designed anti-sway controller running in simulation. IIT advisory engaged. Safety engineer on board. First 2 controls engineers hired. Baseline metrics established (average cycle time, variance, near-miss rate with human operators).
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PHASE 2 -->
+<!-- ============================================================ -->
+
+<h2>Phase 2: Prototype <span class="tag">Month 6–15</span></h2>
+
+<div class="card card-purple">
+  <div class="phase-header">
+    <div class="phase-number">2</div>
+    <div class="phase-meta">
+      <div class="phase-title">Build the Brain</div>
+      <div class="phase-timeline">Duration: 9 months (overlaps Phase 1) &nbsp;|&nbsp; Investment: &#8377;2,50,00,000 — &#8377;3,50,00,000</div>
+    </div>
+  </div>
+
+  <h3>2.1 — Electro-Hydraulic Retrofit (Month 6–10)</h3>
+  <p>This is the mechanical heart of the project. Replace the STC 1600's manual hydraulic valve bank with software-commandable electro-hydraulic valves. This lets software control boom raise/lower, telescope, swing, and hoist.</p>
+  <ul>
+    <li>Work with Sany or a hydraulic systems integrator (e.g., Bosch Rexroth, Parker Hannifin)</li>
+    <li>Retain full manual override — operator can grab controls at any time and the system yields instantly</li>
+    <li>Budget: &#8377;40,00,000 — &#8377;60,00,000 for the electro-hydraulic conversion</li>
+    <li><span class="risk-tag risk-high">HIGH RISK</span> This is the hardest retrofit step. The crane was not designed for this. Expect iteration.</li>
+  </ul>
+
+  <h3>2.2 — Anti-Sway Controller (Month 6–14)</h3>
+  <p>Claude designs the algorithm. Your controls engineers implement and tune it on the physical crane. IIT advisor reviews quarterly. The controller must handle:</p>
+  <ul>
+    <li>Pendulum suppression during hoist, swing, and telescope motions</li>
+    <li>Wind disturbance compensation (the data from Phase 1 feeds the wind model)</li>
+    <li>Variable cable length (sway dynamics change as cable gets shorter/longer)</li>
+    <li>Approach: model-predictive control (MPC) or input shaping — Claude evaluates both against simulation data, IIT advisor validates the choice</li>
+    <li><strong>Claude delivers:</strong> algorithm design, simulation code, parameter tuning in simulation, documentation</li>
+    <li><strong>Engineers deliver:</strong> real-time implementation on embedded hardware, physical tuning on the crane, handling sensor noise and hydraulic backlash that simulation doesn't capture</li>
+    <li><strong>IIT advisor delivers:</strong> quarterly review of controller stability proofs, edge case identification from nonlinear dynamics expertise</li>
+  </ul>
+
+  <h3>2.3 — Lift Planner (Month 8–14)</h3>
+  <p>Software that takes a pick point and place point and computes the optimal crane motion sequence:</p>
+  <ul>
+    <li>Input: 3D site model, pick coordinates, place coordinates, load weight, crane configuration, wind</li>
+    <li>Output: motion profile for each axis (hoist, swing, telescope, boom) with smooth acceleration curves</li>
+    <li>Constraint: stay within load chart at all times, maintain stability margin of at least 15%</li>
+    <li>Use recorded human lift data (Phase 1) as the reference — the planner should produce paths at least as smooth as the best human operators</li>
+  </ul>
+
+  <h3>2.4 — Safety Interlock System (Month 8–12)</h3>
+  <p>Hardware-level safety stops that <strong>cannot be overridden by software</strong>:</p>
+  <table>
+    <tr><th>Interlock</th><th>Trigger</th><th>Action</th></tr>
+    <tr><td>Overload</td><td>Load exceeds 85% of chart capacity at current radius</td><td>Block hoist up, allow hoist down only</td></tr>
+    <tr><td>Two-block</td><td>Hook block approaches boom tip beyond safe distance</td><td>Stop hoist up immediately</td></tr>
+    <tr><td>Wind limit</td><td>Wind exceeds limit for current load/radius</td><td>Pause all motion, alert supervisor</td></tr>
+    <tr><td>Tilt</td><td>Crane chassis tilt exceeds 1.5°</td><td>Emergency stop all motion</td></tr>
+    <tr><td>Exclusion zone</td><td>Boom tip enters geo-fenced prohibited area</td><td>Block motion into zone</td></tr>
+    <tr><td>Human detection</td><td>Person detected in swing/load path</td><td>Pause motion, alert</td></tr>
+    <tr><td>Outrigger pressure</td><td>Any outrigger exceeds ground bearing limit</td><td>Stop all motion</td></tr>
+  </table>
+  <p style="margin-top:0.8rem"><span class="risk-tag risk-high">NON-NEGOTIABLE</span> These interlocks are implemented in a separate hardware safety PLC, not in the main computer. If the main computer crashes, the interlocks still work.</p>
+
+  <h3>2.5 — Team Hiring (Month 2–12)</h3>
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="team-role">Controls Engineer</div>
+      <div class="team-count">2 people, Month 2-4</div>
+      <p style="font-size:0.85rem; color:var(--muted)">Core hires — earlier than original plan. They implement Claude's algorithm designs on real hardware, tune controllers on the physical crane, and handle the 20% that simulation can't capture. These are the hands on the oscilloscope.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Robotics Software Engineer</div>
+      <div class="team-count">1-2 people, Month 6-8</div>
+      <p style="font-size:0.85rem; color:var(--muted)">Integrates Claude-designed modules (sensor fusion, site model, lift planner) into a production system. ROS2 or similar framework. Claude writes the algorithms; these engineers make them production-grade.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Embedded Systems Engineer</div>
+      <div class="team-count">1 person, Month 6-8</div>
+      <p style="font-size:0.85rem; color:var(--muted)">Handles electro-hydraulic integration, safety PLC, real-time control loop. The bridge between software and metal.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Functional Safety Engineer</div>
+      <div class="team-count">1 person, Month 2 (already in Phase 1)</div>
+      <p style="font-size:0.85rem; color:var(--muted)">Owns the safety case, compliance, testing protocols. Reviews and signs off Claude-drafted safety documentation.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Crane Domain Expert</div>
+      <div class="team-count">1 person (internal transfer)</div>
+      <p style="font-size:0.85rem; color:var(--muted)">Your most experienced STC 1600 operator. Bridges the gap between what Claude designs and what actually works on site. This person's intuition is irreplaceable.</p>
+    </div>
+    <div class="team-card" style="border-left: 3px solid var(--cyan)">
+      <div class="team-role" style="color:var(--cyan)">Claude AI (Research Partner)</div>
+      <div class="team-count">Continuous, Month 0 onwards</div>
+      <p style="font-size:0.85rem; color:var(--muted)">Literature review, algorithm design, simulation, software architecture, safety case drafting, documentation. Available 24/7, no academic calendar, no IP sharing. The "senior researcher" who never sleeps.</p>
+    </div>
+  </div>
+
+  <div class="milestone">
+    <div class="milestone-label">Phase 2 Gate — Month 15</div>
+    <strong>Pass criteria:</strong> Electro-hydraulic retrofit complete. Claude-designed anti-sway controller validated in simulation with Phase 1 data AND tested on physical crane by controls engineers. IIT advisor has reviewed controller stability. Lift planner producing valid motion profiles. Safety interlocks tested and certified. Internal team of 6-8 people in place.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PHASE 3 -->
+<!-- ============================================================ -->
+
+<h2>Phase 3: Validation <span class="tag">Month 14–23</span></h2>
+
+<div class="card card-orange">
+  <div class="phase-header">
+    <div class="phase-number">3</div>
+    <div class="phase-meta">
+      <div class="phase-title">First Autonomous Lifts</div>
+      <div class="phase-timeline">Duration: 9 months &nbsp;|&nbsp; Investment: &#8377;1,50,00,000 — &#8377;2,50,00,000</div>
+    </div>
+  </div>
+
+  <h3>3.1 — Controlled Test Environment (Month 14–16)</h3>
+  <p>Set up a test area — ideally at a Heft yard or a quiet section of a wind farm site. Place known loads (concrete blocks matching tower section weight/shape) at defined pick/place points. No live construction activity nearby.</p>
+  <ul>
+    <li>First 50 lifts: system plans the lift, operator reviews and approves each step before execution</li>
+    <li>Next 50 lifts: system executes continuously, operator watches with hand on override</li>
+    <li>Every single lift logged: sensor data, planned path vs actual path, any sway, any interlock trigger</li>
+  </ul>
+
+  <h3>3.2 — Expand to Real Loads (Month 17–19)</h3>
+  <p>Move from concrete blocks to actual turbine components:</p>
+  <table>
+    <tr><th>Load Type</th><th>Weight (approx)</th><th>Shape</th><th>Rigging</th></tr>
+    <tr><td>Tower section (base)</td><td>40-60T</td><td>Cylinder, 4-4.5m dia</td><td>2-point lift, standard slings</td></tr>
+    <tr><td>Tower section (mid/top)</td><td>20-40T</td><td>Cylinder, 3-3.5m dia</td><td>2-point lift, standard slings</td></tr>
+    <tr><td>Nacelle</td><td>60-80T</td><td>Rectangular box</td><td>4-point lift, spreader beam</td></tr>
+    <tr><td>Blade</td><td>15-25T</td><td>Very long (60-80m), narrow</td><td>Specialised yoke — COMPLEX, save for later</td></tr>
+    <tr><td>Hub</td><td>20-30T</td><td>Circular, compact</td><td>Standard slings</td></tr>
+  </table>
+  <p style="margin-top:0.8rem"><strong>Start with tower sections</strong> (simplest shape, standard rigging). Nacelle second. Blades last — the length and flexibility make them the hardest load type.</p>
+
+  <h3>3.3 — Live Site Integration (Month 20–23)</h3>
+  <p>Deploy to an active windmill erection site. The autonomous system handles loading/unloading while the main erection crane (600T+ crawler) does the turbine assembly with human operators.</p>
+  <ul>
+    <li>Operator remains in the cab for every autonomous lift</li>
+    <li>Remote operations console set up in the site office — secondary monitoring</li>
+    <li>Site workers briefed on autonomous operations, geo-fenced exclusion zones active</li>
+    <li>Target: 100 lifts on a live site with zero incidents</li>
+  </ul>
+
+  <div class="milestone">
+    <div class="milestone-label">Phase 3 Gate — Month 23</div>
+    <strong>Pass criteria:</strong> 200+ autonomous lifts completed (test + live site). Zero safety incidents. Cycle time within 120% of best human operators. Anti-sway performance measurably better than human average. All data logged and reviewed.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PHASE 4 -->
+<!-- ============================================================ -->
+
+<h2>Phase 4: Safety Proof <span class="tag">Month 21–30</span></h2>
+
+<div class="card card-green">
+  <div class="phase-header">
+    <div class="phase-number">4</div>
+    <div class="phase-meta">
+      <div class="phase-title">The 1,000-Lift Milestone</div>
+      <div class="phase-timeline">Duration: 9 months &nbsp;|&nbsp; Investment: &#8377;1,00,00,000 — &#8377;1,50,00,000</div>
+    </div>
+  </div>
+
+  <h3>4.1 — Sustained Operations (Month 21–28)</h3>
+  <p>Deploy across 3-4 windmill sites. Accumulate 1,000 supervised autonomous lifts. This is the safety proof that unlocks everything else — regulatory approval, insurance, customer trust.</p>
+
+  <table>
+    <tr><th>Metric</th><th>Target</th><th>Why It Matters</th></tr>
+    <tr><td>Total autonomous lifts</td><td>1,000+</td><td>Statistical significance for safety claim</td></tr>
+    <tr><td>Safety incidents</td><td>0</td><td>One incident = programme setback of 6-12 months</td></tr>
+    <tr><td>Interlock activations</td><td>Tracked (not zero — interlocks activating means they WORK)</td><td>Proves the safety system catches edge cases</td></tr>
+    <tr><td>Cycle time vs human</td><td>Within 110%</td><td>Must not be significantly slower than human</td></tr>
+    <tr><td>Load placement accuracy</td><td>&plusmn;10cm</td><td>Good enough for staging area placement</td></tr>
+    <tr><td>Availability</td><td>&gt;90%</td><td>System shouldn't be "down" more than a human needs breaks</td></tr>
+    <tr><td>Night operation</td><td>Demonstrated</td><td>Key advantage over human — no fatigue, no visibility reduction with LiDAR</td></tr>
+  </table>
+
+  <h3>4.2 — Safety Case Submission (Month 25–28)</h3>
+  <p>Compile all 1,000-lift data into a formal safety case document per IEC 61508. This becomes the basis for regulatory certification. Include:</p>
+  <ul>
+    <li>Hazard analysis (every way the system can fail, and what prevents each)</li>
+    <li>Fault tree analysis (probability of each failure mode)</li>
+    <li>Operational data (1,000 lifts, zero incidents, all interlock activations analysed)</li>
+    <li>Comparison to human operator baseline (from Phase 1 data)</li>
+  </ul>
+
+  <h3>4.3 — Insurance Framework (Month 26–30)</h3>
+  <p>Work with Heft's insurance provider to establish coverage for autonomous crane operations. The 1,000-lift data is your negotiating tool. Potential for <strong>lower premiums</strong> if the data shows autonomous lifts are safer than human-operated ones (fewer near-misses, more consistent, no fatigue-related errors).</p>
+
+  <div class="milestone">
+    <div class="milestone-label">Phase 4 Gate — Month 30</div>
+    <strong>Pass criteria:</strong> 1,000 lifts with zero safety incidents. Safety case accepted by DGIW or relevant authority (IIT advisory name on validation report). Insurance coverage secured. Internal team + Claude fully capable of maintaining and extending the system independently.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PHASE 5 -->
+<!-- ============================================================ -->
+
+<h2>Phase 5: Scale <span class="tag">Month 28–36</span></h2>
+
+<div class="card card-accent">
+  <div class="phase-header">
+    <div class="phase-number">5</div>
+    <div class="phase-meta">
+      <div class="phase-title">Fleet Rollout &amp; New Lift Cycles</div>
+      <div class="phase-timeline">Duration: 8 months &nbsp;|&nbsp; Investment: &#8377;1,50,00,000 — &#8377;2,50,00,000 (plus per-crane retrofit cost)</div>
+    </div>
+  </div>
+
+  <h3>5.1 — Retrofit Kit Standardisation (Month 28–32)</h3>
+  <p>Turn the one-off prototype retrofit into a repeatable kit that can be installed on any STC 1600 in the fleet:</p>
+  <ul>
+    <li>Standardised sensor mounting points and wiring harness</li>
+    <li>Pre-configured electro-hydraulic valve package</li>
+    <li>Safety PLC with tested, certified firmware</li>
+    <li>Installation manual — target: 2-week retrofit per crane</li>
+    <li>Estimated per-crane retrofit cost: &#8377;50,00,000 — &#8377;70,00,000 (drops with volume)</li>
+  </ul>
+
+  <h3>5.2 — Fleet Deployment (Month 30–36)</h3>
+  <p>Start with 5 STC 1600s across 5 different windmill sites. Each crane runs supervised autonomous loading/unloading. Build operational confidence across Heft's site teams.</p>
+
+  <h3>5.3 — Expand Lift Cycles (Month 32–36+)</h3>
+  <p>With the loading/unloading cycle proven, begin developing autonomy for:</p>
+  <table>
+    <tr><th>Next Lift Cycle</th><th>Difficulty</th><th>Value</th></tr>
+    <tr><td>Crane assembly/disassembly assist</td><td>Medium — known components, fixed sequence</td><td>High — reduces mobilisation time</td></tr>
+    <tr><td>Blade loading onto blade trailer</td><td>Medium-High — long, flexible load</td><td>High — frequent, repetitive</td></tr>
+    <tr><td>Tailing lifts (dual-crane)</td><td>Very High — requires crane-to-crane coordination</td><td>Very High — but save for Year 3+</td></tr>
+    <tr><td>Port container handling</td><td>Low-Medium — controlled environment</td><td>Medium — cross-business-unit expansion</td></tr>
+  </table>
+
+  <div class="milestone">
+    <div class="milestone-label">Phase 5 Gate — Month 36</div>
+    <strong>Pass criteria:</strong> 5 autonomous STC 1600s operating commercially on windmill sites. Revenue being generated from autonomous operations (either through premium pricing or labour cost reduction). Second lift cycle in development.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- REGULATORY TRACK -->
+<!-- ============================================================ -->
+
+<h2>Regulatory Track <span class="tag">Parallel — Month 3–30</span></h2>
+
+<div class="card card-cyan">
+  <p>No regulations exist in India for autonomous mobile cranes. This is both a risk and an opportunity — <strong>Heft gets to help write the rules.</strong></p>
+
+  <table>
+    <tr><th>When</th><th>Action</th><th>Who</th></tr>
+    <tr><td>Month 3</td><td>Initial meeting with DGIW (Directorate General of Factory Advice &amp; Labour Institutes) to introduce the programme and ask for guidance on testing framework</td><td>Viraj + Safety Engineer</td></tr>
+    <tr><td>Month 4</td><td>Engage Bureau of Indian Standards (BIS) — explore if IS:15560 (crane safety) needs an autonomous operations annex</td><td>Safety Engineer</td></tr>
+    <tr><td>Month 6</td><td>Meet state factory inspectorates in key states where Heft operates windmill sites (Gujarat, Tamil Nadu, Rajasthan, Karnataka, Maharashtra, Madhya Pradesh)</td><td>Viraj + regional team</td></tr>
+    <tr><td>Month 8</td><td>Invite DGIW officials to witness instrumented crane data collection — build familiarity</td><td>Safety Engineer</td></tr>
+    <tr><td>Month 16</td><td>Invite regulators to witness first controlled autonomous lifts — transparency builds trust</td><td>Full team</td></tr>
+    <tr><td>Month 24</td><td>Submit interim safety report with 500+ lift data</td><td>Safety Engineer</td></tr>
+    <tr><td>Month 28-30</td><td>Submit formal safety case + apply for operational certification / exemption</td><td>Safety Engineer + legal</td></tr>
+  </table>
+
+  <div class="decision-box">
+    <div class="decision-label">Strategic Insight</div>
+    <p>Heft's 900-crane fleet and dominant position in Indian windmill erection makes you the natural partner for regulators. You're not a startup asking for permission — you're the industry leader proposing a safety standard. Frame it as: <strong>"We want to make crane operations safer. Here is the data. Help us write the rules."</strong></p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- BUDGET SUMMARY -->
+<!-- ============================================================ -->
+
+<h2>Budget Summary <span class="tag">36-Month Programme</span></h2>
+
+<div class="card">
+  <table class="cost-table">
+    <tr><th>Category</th><th>Phase</th><th>Estimate</th></tr>
+    <tr><td>Sensor package (1 crane)</td><td>Phase 1</td><td>&#8377;32,00,000</td></tr>
+    <tr><td>Claude AI (subscriptions + compute, 3 years)</td><td>Phase 1-5</td><td>&#8377;8,00,000</td></tr>
+    <tr><td>IIT advisory (1 professor, quarterly, 2 years)</td><td>Phase 1-4</td><td>&#8377;25,00,000</td></tr>
+    <tr><td>Safety engineer (3 years)</td><td>Phase 1-5</td><td>&#8377;60,00,000</td></tr>
+    <tr><td>Electro-hydraulic retrofit (1 crane)</td><td>Phase 2</td><td>&#8377;50,00,000</td></tr>
+    <tr><td>Software development team (5-7 people, 2.5 years)</td><td>Phase 2-5</td><td>&#8377;3,00,00,000</td></tr>
+    <tr><td>Safety PLC + hardware interlocks</td><td>Phase 2</td><td>&#8377;15,00,000</td></tr>
+    <tr><td>Test site setup + operations</td><td>Phase 3</td><td>&#8377;25,00,000</td></tr>
+    <tr><td>Fleet retrofit kits (5 cranes)</td><td>Phase 5</td><td>&#8377;3,00,00,000</td></tr>
+    <tr><td>Regulatory / certification</td><td>Phase 1-5</td><td>&#8377;20,00,000</td></tr>
+    <tr><td>Contingency (15%)</td><td>All</td><td>&#8377;1,05,00,000</td></tr>
+    <tr style="border-top: 2px solid var(--accent)">
+      <td><strong>Total Programme (36 months)</strong></td>
+      <td></td>
+      <td><strong>&#8377;7,50,00,000 — &#8377;10,50,00,000</strong></td>
+    </tr>
+    <tr><td colspan="3" style="color:var(--green); padding-top:0.8rem"><strong>Savings vs original IIT-led model: &#8377;1,50,00,000 — &#8377;2,00,00,000</strong> (&#8377;80L IIT partnership replaced by &#8377;8L Claude + &#8377;25L advisory = &#8377;47L saved, plus faster delivery compresses timeline costs)</td></tr>
+  </table>
+
+  <p style="margin-top:1rem; color:var(--muted); font-size:0.9rem">Note: Per-crane retrofit cost at scale (Phase 5+) is estimated at &#8377;50-70 lakh per unit. A fleet-wide rollout to 20 STC 1600s would add &#8377;10-14 Cr. This is a Phase 6+ decision based on commercial results.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- RISK REGISTER -->
+<!-- ============================================================ -->
+
+<h2>Risk Register <span class="tag">Top 8</span></h2>
+
+<div class="card">
+  <table>
+    <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr>
+      <td>Electro-hydraulic retrofit is harder than expected on STC 1600</td>
+      <td><span class="risk-tag risk-high">HIGH</span></td>
+      <td><span class="risk-tag risk-high">HIGH</span></td>
+      <td>Engage Sany technical team early. Have a backup crane model identified. Budget 50% contingency on this line item.</td>
+    </tr>
+    <tr>
+      <td>Safety incident during testing</td>
+      <td><span class="risk-tag risk-low">LOW</span></td>
+      <td><span class="risk-tag risk-high">CRITICAL</span></td>
+      <td>Hardware interlocks as independent safety layer. Operator always in cab. Start with concrete blocks, not real components. Conservative operating envelope (85% max, not 100%).</td>
+    </tr>
+    <tr>
+      <td>Claude-designed algorithms don't transfer cleanly to physical hardware</td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td>This is the known gap — simulation is 80%, physical tuning is 20%. Mitigated by hiring controls engineers early (Month 2, not Month 6). IIT advisor reviews quarterly for edge cases. Conservative operating envelope in early testing.</td>
+    </tr>
+    <tr>
+      <td>Regulatory resistance / no path to certification</td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td><span class="risk-tag risk-high">HIGH</span></td>
+      <td>Engage regulators from Month 3 — don't surprise them. Position Heft as partner, not petitioner. Build the safety case before asking for approval.</td>
+    </tr>
+    <tr>
+      <td>Hiring controls/robotics talent in India</td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td>Claude reduces the number of hires needed (no 5-person research team). Focus on 2 strong controls engineers — the hands-on implementers. IIT advisory connection provides a pipeline to graduating students. Offer equity/bonus for retention.</td>
+    </tr>
+    <tr>
+      <td>Anti-sway performance insufficient for production</td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td>6 months of Phase 1 data gives the control algorithm real-world training data. Accept that first iteration may only work in low-wind conditions — restrict the operating envelope and expand over time.</td>
+    </tr>
+    <tr>
+      <td>Operator/union resistance to automation</td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td><span class="risk-tag risk-med">MEDIUM</span></td>
+      <td>Frame as "supervisor role" not replacement. Operator stays in cab. Start with the boring lifts nobody wants to do. Involve senior operators in testing — they become champions.</td>
+    </tr>
+    <tr>
+      <td>Wind farm site conditions too variable</td>
+      <td><span class="risk-tag risk-low">LOW</span></td>
+      <td><span class="risk-tag risk-low">LOW</span></td>
+      <td>Loading/unloading happens on prepared hardstands. If ground varies, the system says "no" and the human takes over. Restricted operational envelope handles this.</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- TEAM STRUCTURE -->
+<!-- ============================================================ -->
+
+<h2>Team Structure <span class="tag">By Month 12</span></h2>
+
+<div class="card">
+  <table>
+    <tr><th>Role</th><th>Count</th><th>Hire By</th><th>Reports To</th></tr>
+    <tr><td><strong>Programme Lead</strong></td><td>1</td><td>Month 0 (Viraj or direct report)</td><td>Viraj</td></tr>
+    <tr><td>Functional Safety Engineer</td><td>1</td><td>Month 2</td><td>Programme Lead</td></tr>
+    <tr><td>Controls Engineer</td><td>2</td><td>Month 2-4</td><td>Programme Lead</td></tr>
+    <tr><td>Robotics Software Engineer</td><td>1-2</td><td>Month 6-8</td><td>Programme Lead</td></tr>
+    <tr><td>Embedded Systems Engineer</td><td>1</td><td>Month 6-8</td><td>Programme Lead</td></tr>
+    <tr><td>Crane Domain Expert (internal transfer)</td><td>1</td><td>Month 0</td><td>Programme Lead</td></tr>
+    <tr><td>Site Test Engineer</td><td>1</td><td>Month 12</td><td>Programme Lead</td></tr>
+    <tr><td><strong>Total internal team</strong></td><td><strong>8-9</strong></td><td></td><td></td></tr>
+    <tr><td colspan="4" style="color:var(--cyan); padding-top:1rem"><strong>Claude AI:</strong> Research partner — algorithm design, simulation, software architecture, safety documentation, literature review. Available from Month 0, continuous.</td></tr>
+    <tr><td colspan="4" style="color:var(--muted); padding-top:0.5rem"><strong>IIT Advisory:</strong> 1 professor, quarterly reviews. Provides stability validation and regulatory credibility. Not a full research team.</td></tr>
+    <tr><td colspan="4" style="color:var(--muted); padding-top:0.5rem">Sany/hydraulics partner (as needed for electro-hydraulic retrofit)</td></tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- DARSHANA SYNTHESIS -->
+<!-- ============================================================ -->
+
+<h2>The Darshana View <span class="tag">Why This Plan</span></h2>
+
+<div class="synthesis-box">
+  <p>This plan was designed by running the question through all six Darshana reasoning engines of the OM architecture:</p>
+
+  <table>
+    <tr><th>Darshana</th><th>What It Revealed</th><th>How It Shaped the Plan</th></tr>
+    <tr>
+      <td style="color:var(--accent)"><strong>Nyaya</strong> (Logic)</td>
+      <td>The mining truck analogy breaks at suspended dynamic loads. Crane automation is a different physics problem.</td>
+      <td>Anti-sway controller is the critical technical deliverable, not AI/ML. Claude designs the algorithms; in-house engineers tune on real hardware. IIT advisor validates.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--accent)"><strong>Samkhya</strong> (Enumeration)</td>
+      <td>28 components needed. The "rigging intelligence" gap — nobody in autonomy research models the rigging.</td>
+      <td>Phase 3 starts with simplest rigging (tower section slings) and defers complex rigging (blade yokes) to later.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--accent)"><strong>Yoga</strong> (Focus)</td>
+      <td>Safety is the one factor that determines everything. One incident kills the programme.</td>
+      <td>Hardware interlocks as independent safety layer. 1,000-lift milestone before any commercial claim. Safety case written BEFORE software.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--accent)"><strong>Vedanta</strong> (Unity)</td>
+      <td>The real unit is the decision point, not the crane. Redistribute decisions between human and machine.</td>
+      <td>Operator stays as supervisor. Autonomy handles the boring decisions (smooth motion) while human handles exceptions.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--accent)"><strong>Mimamsa</strong> (Action)</td>
+      <td>7 executable commands with strict dependencies. The critical path is: data → safety case → software → proof.</td>
+      <td>Phase gates with clear pass/fail criteria. No phase starts until the previous gate is passed.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--accent)"><strong>Vaisheshika</strong> (Atoms)</td>
+      <td>Three irreducible components: load physics model, safety interlocks, operational envelope restriction.</td>
+      <td>These three are the non-negotiable deliverables. Everything else can be swapped or upgraded.</td>
+    </tr>
+  </table>
+
+  <blockquote>
+    "Don't automate the crane. Automate the lift cycle. Don't replace the operator. Redistribute the decisions. Don't prove the technology works. Prove 1,000 lifts are safe. The crane that does less but guarantees it — wins."
+  </blockquote>
+</div>
+
+<!-- ============================================================ -->
+<!-- WHAT SUCCESS LOOKS LIKE -->
+<!-- ============================================================ -->
+
+<h2>What Success Looks Like <span class="tag">Month 36</span></h2>
+
+<div class="card card-accent">
+  <ul style="font-size: 1rem; line-height: 2;">
+    <li>5 autonomous STC 1600s operating on windmill sites across India</li>
+    <li>1,000+ lifts completed with zero safety incidents</li>
+    <li>Loading/unloading cycle time matching or beating human operators</li>
+    <li>Night operations capability (machines don't get tired)</li>
+    <li>Regulatory framework in place — written with Heft's input</li>
+    <li>Insurance coverage secured, potentially at lower premiums than manual operation</li>
+    <li>Internal team of 8-9 + Claude AI owns the full technology stack — 100% Heft IP</li>
+    <li>Second lift cycle (crane assembly assist) in development</li>
+    <li>India's first certified autonomous mobile crane — Heft's name on it</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<!-- FOOTER -->
+<!-- ============================================================ -->
+
+<div class="footer">
+  <p>Project VAYU — Generated by the Darshana Architecture (OM Project)</p>
+  <p>Shaddarshana reasoning applied to: "How do I build an autonomous crane?"</p>
+  <p style="margin-top:0.5rem">Prepared for Heft Energy &amp; Heavy Equipment &nbsp;|&nbsp; 27 March 2026</p>
+</div>
+
+</body>
+</html>
