@@ -8,6 +8,10 @@ build/
 dist/
 *.egg-info/
 *.egg
+darshana.egg-info/
+
+# Firebase
+firebase-debug.log
 
 # Virtual environments
 venv/

@@ -5,8 +5,6 @@
 ```
 om/
 ├── CLAUDE.md              # Project identity + operating principles
-├── THESIS.md              # The Darshana Architecture for AGI
-├── BLOG.md                # Publishable blog post
 ├── QUICKSTART.md          # 1-page getting started guide
 ├── README.md              # Public-facing documentation
 ├── LICENSE                # MIT
@@ -50,31 +48,11 @@ om/
 │   ├── .claude-plugin/    # Marketplace manifest
 │   └── plugins/darshana/  # Plugin distribution copy
 │
-├── training/              # ML training pipeline
-│   ├── generate_data.py   # Darshana reasoning examples (329 examples)
-│   ├── curriculum_to_data.py # Curriculum → training data (1,461 entries)
-│   ├── finetune.py        # Generic LoRA fine-tuning (Llama/Mistral/Qwen)
-│   ├── finetune_kimi.py   # Kimi K2.5 specific (KTransformers + LlamaFactory)
-│   ├── evaluate.py        # 4-metric eval (adherence, depth, novelty, vritti)
-│   ├── serve.py           # Generic HTTP serving
-│   ├── serve_kimi.py      # Kimi K2.5 serving with MoE offloading
-│   ├── reward_model.py    # Vritti classifier as RLHF reward model
-│   ├── setup_kimi.sh      # One-command Kimi K2.5 environment setup
-│   ├── config.yaml        # Generic training config
-│   ├── config_kimi.yaml   # Kimi K2.5 specific config
-│   ├── requirements.txt   # ML dependencies
-│   ├── examples/          # Hand-crafted training examples (per darshana)
-│   └── data/              # Generated JSONL datasets (~1.3M tokens)
-│
 ├── tests/                 # Test suite + benchmarks
 │   ├── test_router.py     # 15 router tests
 │   ├── test_filter.py     # 13+ filter tests (48 total passing)
 │   ├── benchmark.py       # 20 real-world queries (95% accuracy)
 │   └── benchmark_filter.py # 15 vritti samples (100% accuracy)
-│
-├── reports/               # Generated HTML reports
-│   ├── what-this-means.html         # Layman outcomes report
-│   └── yaksha-palestine-analysis.html # Example Yaksha Protocol report
 │
 ├── sanskrit/              # Phase 1: Language (6 lessons)
 ├── texts/                 # Phase 2: Primary texts (12 lessons)
