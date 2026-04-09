@@ -361,6 +361,8 @@ class NyayaEngine(DarshanaEngine):
         r"(is this (right|correct|true|wrong)|does this follow)",
         r"\b(contradiction|inconsisten\w*|paradox)\b",
         r"(if .+ then|necessary|sufficient)",
+        r"\bmust be (wrong|right|correct|true|false)\b",
+        r"\bshould .+ because\b",
     ]
 
     def reason(self, query: str, context: Optional[Dict] = None) -> ReasoningOutput:
@@ -834,13 +836,18 @@ class DarshanaRouter:
             if score >= self.activation_threshold
         ]
 
-        # Fallback: if nothing above threshold, take the top engine
+        # Fallback: if nothing above threshold, pick the engine with the
+        # highest score. If ALL scores are 0 (no patterns matched at all),
+        # default to mimamsa — it handles direct questions and text
+        # interpretation without imposing heavy reasoning structure.
         if not candidates:
-            top_name = sorted_engines[0][0] if sorted_engines else "nyaya"
+            top_name, top_score = sorted_engines[0] if sorted_engines else ("mimamsa", 0.0)
+            if top_score == 0.0:
+                top_name = "mimamsa"
             return (
                 [top_name],
                 "deep",
-                f"No engine scored above threshold; defaulting to top engine ({top_name}).",
+                f"No engine scored above threshold; defaulting to {top_name}.",
             )
 
         top_name, top_score = candidates[0]

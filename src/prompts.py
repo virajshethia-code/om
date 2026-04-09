@@ -753,7 +753,13 @@ def get_darshana_prompt(engine_name: str, guna: str = "sattva") -> str:
     """
     base = DARSHANA_PROMPTS[engine_name]
     addendum = GUNA_ADDENDA.get(guna, "")
-    return base + addendum
+    # Anti-sycophancy directive: evaluate claims on merits, not user agreement
+    independence = (
+        "\n\nCRITICAL: Evaluate all claims on their merits alone. If the user "
+        "has stated an opinion or preference, do NOT let that influence your "
+        "analysis. Your job is to reason correctly, not to agree."
+    )
+    return base + addendum + independence
 
 
 def build_multi_darshana_prompt(engine_names: list[str], guna: str = "sattva") -> str:

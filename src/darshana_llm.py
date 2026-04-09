@@ -218,20 +218,24 @@ class DarshanaLLM:
         max_engines: int = 2,
         karma_store_path: Optional[str] = None,
         knowledge_cutoff: str = "2025-05",
+        bedrock_region: Optional[str] = None,
     ) -> None:
-        # Resolve API key: constructor > env var > error
-        resolved_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
-        if not resolved_key:
-            raise ValueError(
-                "Anthropic API key required. Pass api_key= to constructor "
-                "or set ANTHROPIC_API_KEY environment variable."
-            )
-
         self.model = model or self.DEFAULT_MODEL
         self.max_tokens = max_tokens
 
-        # Initialize the Anthropic client
-        self.client = anthropic.Anthropic(api_key=resolved_key)
+        # Initialize the Anthropic client — Bedrock or direct API
+        if bedrock_region:
+            from anthropic import AnthropicBedrock
+            self.client = AnthropicBedrock(aws_region=bedrock_region)
+        else:
+            resolved_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+            if not resolved_key:
+                raise ValueError(
+                    "Anthropic API key required. Pass api_key= to constructor, "
+                    "set ANTHROPIC_API_KEY environment variable, or use "
+                    "bedrock_region= for AWS Bedrock."
+                )
+            self.client = anthropic.Anthropic(api_key=resolved_key)
 
         # Initialize the Darshana pipeline components
         self.router = DarshanaRouter(

@@ -26,6 +26,10 @@ ENV/
 # Darshana-specific
 karma_store.json
 
+# Benchmark data and results (external datasets, API outputs)
+benchmark_data/
+benchmark_results/
+
 # IDE
 .idea/
 .vscode/
