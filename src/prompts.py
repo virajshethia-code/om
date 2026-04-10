@@ -25,6 +25,7 @@ License: MIT
 
 from __future__ import annotations
 
+import os
 from typing import Dict
 
 # ---------------------------------------------------------------------------
@@ -754,11 +755,15 @@ def get_darshana_prompt(engine_name: str, guna: str = "sattva") -> str:
     base = DARSHANA_PROMPTS[engine_name]
     addendum = GUNA_ADDENDA.get(guna, "")
     # Anti-sycophancy directive: evaluate claims on merits, not user agreement
-    independence = (
-        "\n\nCRITICAL: Evaluate all claims on their merits alone. If the user "
-        "has stated an opinion or preference, do NOT let that influence your "
-        "analysis. Your job is to reason correctly, not to agree."
-    )
+    # Can be disabled via DARSHANA_NO_ANTI_SYC=1 for ablation studies
+    if not os.environ.get("DARSHANA_NO_ANTI_SYC"):
+        independence = (
+            "\n\nCRITICAL: Evaluate all claims on their merits alone. If the user "
+            "has stated an opinion or preference, do NOT let that influence your "
+            "analysis. Your job is to reason correctly, not to agree."
+        )
+    else:
+        independence = ""
     return base + addendum + independence
 
 
