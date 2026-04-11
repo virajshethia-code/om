@@ -1,0 +1,297 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{natbib}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{enumitem}
+
+\definecolor{sycred}{HTML}{DC2626}
+\definecolor{fixgreen}{HTML}{22C55E}
+
+\title{\emph{Adhikara-Bheda}: Sycophancy Is Universal Across LLMs,\\But the Fix Depends on Model Capability}
+
+\author{
+  Harshwardhan Gokhale \\
+  \texttt{github.com/aidgoc/om}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We benchmark sycophancy across 19 language models from 6 families (Anthropic, Meta, Amazon, DeepSeek, Mistral, Writer) on Amazon Bedrock. Every model tested is sycophantic, with rates ranging from 56\% (Claude Sonnet 4.6) to 100\% (Llama 4 Scout, Llama 3.1 70B, DeepSeek R1). We test two inference-time interventions---a simple anti-sycophancy instruction and structured reasoning prompts derived from classical Indian epistemology (the Shaddarshana)---in a full $2 \times 2$ factorial design on two models. The results reveal a capability-dependent interaction: for Claude Sonnet 4.6 (strong model), the instruction alone reduces sycophancy from 26\% to 4.5\%, and structure provides no additional benefit. For Llama 4 Maverick (weaker model), neither intervention alone is sufficient---the instruction reaches 23\%, structure reaches 21.5\%, but combining them reaches 15.6\%. We term this \emph{adhikara-bheda} (\foreignlanguage{sanskrit}{adhikara-bheda}), borrowing from the Indian pedagogical tradition of adapting the teaching to the student's qualification level. The structured reasoning intervention also produces a distinct effect on output quality: valid cognition increases from 45\% to 72\%, and ignorance-covering drops from 18\% to 1.5\%. We argue that sycophancy reduction and reasoning quality improvement are orthogonal problems requiring different mechanisms. Total cost: {\raise.17ex\hbox{$\scriptstyle\sim$}}\$15. Code and data: \url{https://github.com/aidgoc/om}.
+\end{abstract}
+
+% ===========================================================================
+\section{Introduction}
+% ===========================================================================
+
+\subsection{Sycophancy Is Universal}
+
+Sycophancy---the tendency of language models to agree with a user's stated opinion regardless of correctness---is a documented alignment failure \citep{perez2023discovering, sharma2024towards}. Prior work has measured sycophancy primarily on individual models. We present the first cross-model sycophancy leaderboard, testing 19 models across 6 families on the same 48-prompt subset of Anthropic's published sycophancy evaluations.
+
+The result is unambiguous: \textbf{every model is sycophantic}. Three models (Llama 4 Scout, Llama 3.1 70B, DeepSeek R1) agree with the user's stated opinion 100\% of the time. The least sycophantic model (Claude Sonnet 4.6) still agrees 56\% of the time. The median rate across 19 models is 87\%.
+
+\subsection{The Question Is Not Whether, But How to Fix It}
+
+We test two inference-time interventions:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Instruction:} A simple anti-sycophancy directive: \emph{``Evaluate all claims on their merits alone. If the user has stated an opinion, do NOT let that influence your analysis.''}
+  \item \textbf{Structure:} Routing queries through reasoning engines derived from the Shaddarshana---the six classical schools of Indian philosophy---each imposing a specific cognitive pattern (formal syllogism, exhaustive decomposition, noise filtering, etc.) that is structurally incompatible with simple agreement.
+\end{enumerate}
+
+We test these in a full $2 \times 2$ factorial on two models: Claude Sonnet 4.6 (strong) and Llama 4 Maverick (weaker).
+
+\subsection{The Key Finding}
+
+The interventions interact with model capability:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Strong model (Claude):} The instruction alone is sufficient and optimal. Sycophancy drops from 26\% to 4.5\%. Adding structure provides no additional benefit (8.0\%) and actually interferes.
+  \item \textbf{Weaker model (Llama):} Neither intervention alone is sufficient. The instruction reaches 23\%, structure reaches 21.5\%, but combining them reaches 15.6\%. The model needs both.
+\end{itemize}
+
+We term this \emph{adhikara-bheda}---the Indian pedagogical principle of adapting the method to the student's qualification level. An advanced student needs only a pointer. An intermediate student needs structured practice.
+
+\subsection{Contributions}
+
+\begin{enumerate}[leftmargin=*]
+  \item A \textbf{19-model sycophancy leaderboard} showing universal sycophancy (56--100\%) across 6 model families
+  \item A \textbf{$2 \times 2$ factorial analysis} demonstrating capability-dependent interaction between instruction and structure
+  \item Evidence that \textbf{sycophancy reduction and reasoning quality are orthogonal}---different mechanisms for different failure modes
+  \item \textbf{Darshana}, an open-source inference-time framework implementing both interventions
+  \item A \textbf{benchmark methodology} using externally-sourced prompts at {\raise.17ex\hbox{$\scriptstyle\sim$}}\$15 total cost
+\end{enumerate}
+
+% ===========================================================================
+\section{Framework}
+% ===========================================================================
+
+Darshana operates as an inference-time pipeline:
+
+\begin{center}
+\texttt{Query $\rightarrow$ Buddhi (Router) $\rightarrow$ Darshana Prompt $\rightarrow$ LLM $\rightarrow$ Vritti Filter $\rightarrow$ Response}
+\end{center}
+
+\textbf{Buddhi (Router).} A pattern-matching classifier selecting 1--2 of six reasoning engines. Defaults to Mimamsa (direct interpretation) when no patterns match.
+
+\textbf{Darshana Prompts.} Six engines, each derived from a school of Indian philosophy:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Engine} & \textbf{School} & \textbf{Structural Constraint} \\
+\midrule
+Nyaya & Logic & Five-membered syllogism + five fallacy checks \\
+Samkhya & Enumeration & Exhaustive decomposition into 15+ components \\
+Yoga & Focus & Factor scoring, threshold filtering, signal extraction \\
+Vedanta & Synthesis & Assume both sides $\rightarrow$ negate projections $\rightarrow$ find residue \\
+Mimamsa & Interpretation & Classify every sentence $\rightarrow$ extract commands \\
+Vaisheshika & Atomism & Recursive decomposition to irreducible atoms \\
+\bottomrule
+\end{tabular}
+\caption{The six darshana reasoning engines.}
+\label{tab:engines}
+\end{table}
+
+\textbf{Vritti Filter.} A pattern-based output classifier (no LLM calls) categorizing responses into five epistemic types from Patanjali's Yoga Sutras (1.5--1.11): \emph{pramana} (valid cognition), \emph{viparyaya} (misconception), \emph{vikalpa} (verbal delusion), \emph{nidra} (ignorance), \emph{smriti} (recall).
+
+\paragraph{Hypothesized mechanisms.} The \textbf{instruction} changes the \emph{objective}: agreement is no longer the target (behavioral intervention). The \textbf{structure} changes the \emph{path}: the model must traverse intermediate reasoning steps incompatible with the shortcut to agreement (cognitive intervention). Strong models need only the behavioral correction; weaker models need both.
+
+% ===========================================================================
+\section{Methodology}
+% ===========================================================================
+
+\subsection{Prompt Sources}
+
+All prompts are externally authored. \textbf{Anthropic Sycophancy Evaluations} \citep{perez2023discovering}: three datasets (NLP Survey, PhilPapers 2020, Political Typology Quiz; 30,051 total prompts; MIT license) where each prompt presents a user persona with a stated opinion and a binary question. \textbf{TruthfulQA} \citep{lin2022truthfulqa}: 790 factual questions (Apache 2.0) for regression testing.
+
+\subsection{Experiment 1: Model Scan}
+
+26 text-capable LLMs on Amazon Bedrock. 48 prompts per model (16 per Anthropic sycophancy source), seed 42. Raw condition only. 19 models responded successfully. Cost: \$2.71.
+
+\subsection{Experiment 2: $2 \times 2$ Factorial}
+
+Two models (Claude Sonnet 4.6, Llama 4 Maverick). Four conditions: raw, instruction-only, structure-only, full pipeline. 200 prompts per condition (50 per source). Sycophancy judged by Claude Haiku 4.5. Quality scored by Vritti filter (no LLM). Cost: {\raise.17ex\hbox{$\scriptstyle\sim$}}\$12 across 8 runs.
+
+% ===========================================================================
+\section{Results}
+% ===========================================================================
+
+\subsection{Sycophancy Leaderboard}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{rlcr}
+\toprule
+\textbf{Rank} & \textbf{Model} & \textbf{Family} & \textbf{Syc. Rate} \\
+\midrule
+1 & Llama 4 Scout 17B & Meta & \textcolor{sycred}{100.0\%} \\
+2 & Llama 3.1 70B & Meta & \textcolor{sycred}{100.0\%} \\
+3 & DeepSeek R1 & DeepSeek & \textcolor{sycred}{100.0\%} \\
+4 & Nova 2 Lite & Amazon & \textcolor{sycred}{97.8\%} \\
+5 & Llama 3.3 70B & Meta & \textcolor{sycred}{95.7\%} \\
+6 & Llama 3.1 8B & Meta & 89.7\% \\
+7 & Nova Pro & Amazon & 88.9\% \\
+8 & Mistral Pixtral Large & Mistral & 88.4\% \\
+9 & Palmyra X4 & Writer & 87.8\% \\
+10 & Llama 4 Maverick & Meta & 87.5\% \\
+11 & Claude Sonnet 4 & Anthropic & 87.1\% \\
+12 & Nova Lite & Amazon & 87.0\% \\
+13 & Palmyra X5 & Writer & 87.0\% \\
+14 & Claude 3 Haiku & Anthropic & 85.7\% \\
+15 & Nova Micro & Amazon & 84.2\% \\
+16 & Claude Sonnet 4.5 & Anthropic & 78.0\% \\
+17 & Claude Haiku 4.5 & Anthropic & 71.9\% \\
+18 & Claude 3.5 Haiku & Anthropic & 69.0\% \\
+19 & Claude Sonnet 4.6 & Anthropic & 56.2\% \\
+\bottomrule
+\end{tabular}
+\caption{Baseline sycophancy rates across 19 models. 48 opinion-based prompts per model from Anthropic's sycophancy evaluations. All models exceed 56\%.}
+\label{tab:leaderboard}
+\end{table}
+
+Sycophancy does not correlate cleanly with model size (Llama 3.1 70B at 100\% vs.\ Llama 3.1 8B at 89.7\%). By family: Meta averages 95.4\%, Amazon 89.5\%, Anthropic 75.6\%.
+
+\subsection{The $2 \times 2$ Factorial}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+& \textbf{No instruction} & \textbf{With instruction} \\
+\midrule
+\multicolumn{3}{c}{\textit{Claude Sonnet 4.6} (strong model)} \\
+\midrule
+No structure & 26.0\% & \textcolor{fixgreen}{\textbf{4.5\%}} \\
+With structure & 10.1\% & 8.0\% \\
+\midrule
+\multicolumn{3}{c}{\textit{Llama 4 Maverick} (weaker model)} \\
+\midrule
+No structure & 60.0\% & 23.0\% \\
+With structure & 21.5\% & \textcolor{fixgreen}{\textbf{15.6\%}} \\
+\bottomrule
+\end{tabular}
+\caption{$2 \times 2$ factorial: sycophancy rates. The optimal cell differs by model capability. Claude needs only the instruction. Llama needs both.}
+\label{tab:factorial}
+\end{table}
+
+\textbf{On Claude}, the instruction is the dominant mechanism (main effect $-$11.8pp). Structure adds no benefit and slightly interferes: instruction-only (4.5\%) outperforms the full pipeline (8.0\%).
+
+\textbf{On Llama}, both mechanisms contribute comparably (instruction: $-$21.5pp, structure: $-$22.5pp) and the combination (15.6\%) outperforms either alone. The interaction is additive rather than interfering.
+
+\subsection{Orthogonality: Sycophancy $\neq$ Reasoning Quality}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Condition} & \textbf{Pramana} & \textbf{Nidra} & \textbf{Depth} & \textbf{Syc. Rate} \\
+\midrule
+Raw & 45.0\% & 18.0\% & 7.7 & 26.0\% \\
+Instruction only & 42.0\% & 18.5\% & 8.5 & \textcolor{fixgreen}{4.5\%} \\
+Structure only & \textcolor{fixgreen}{72.2\%} & \textcolor{fixgreen}{5.1\%} & \textcolor{fixgreen}{11.3} & 10.1\% \\
+Full pipeline & 71.5\% & 1.5\% & 14.1 & 8.0\% \\
+\bottomrule
+\end{tabular}
+\caption{Claude Sonnet 4.6: instruction fixes sycophancy but not quality; structure fixes quality but not sycophancy (optimally). They operate on different axes.}
+\label{tab:orthogonality}
+\end{table}
+
+The instruction has \textbf{no effect on reasoning quality}---pramana stays at 42\%, nidra at 18.5\%, depth barely changes. It only modifies social behavior.
+
+The structure dramatically improves reasoning quality---pramana jumps to 72\%, nidra drops to 5\%, depth nearly doubles---but is less effective at sycophancy reduction (on strong models).
+
+\textbf{Sycophancy and reasoning quality are orthogonal.} The instruction addresses the social behavior (whether the model agrees). The structure addresses the cognitive behavior (how the model reasons). Different problems, different fixes.
+
+% ===========================================================================
+\section{Discussion}
+% ===========================================================================
+
+\subsection{Adhikara-Bheda: Matching Intervention to Capability}
+
+The $2 \times 2$ interaction is the central finding. Adding structure to the instruction \emph{increases} Claude's sycophancy (4.5\% $\rightarrow$ 8.0\%) but \emph{decreases} Llama's (23.0\% $\rightarrow$ 15.6\%).
+
+This maps to the Vedantic pedagogical concept of \emph{adhikara-bheda}---``difference in qualification.'' In the guru-shishya tradition:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Uttama adhikari} (advanced): needs only a mahavakya---a single pointer. Like Claude with ``don't agree.''
+  \item \textbf{Madhyama adhikari} (intermediate): needs structured practice---shravana, manana, nididhyasana. Like Llama needing the darshana scaffold.
+\end{itemize}
+
+The tradition arrived at this through 2,500 years of pedagogical iteration. Our data provides empirical confirmation on a novel type of student.
+
+\subsection{Implications for Practitioners}
+
+The practical takeaway is a decision rule:
+
+\begin{itemize}[leftmargin=*]
+  \item If your problem is \textbf{sycophancy} and you use a strong model: add the anti-sycophancy instruction to your system prompt. Cost: free. Effect: $-$21.5pp.
+  \item If your problem is \textbf{shallow reasoning}: use structured darshana prompts. Cost: 2$\times$ per query. Effect: +27pp pramana, $-$13pp nidra.
+  \item If your model is \textbf{weak} (open-source, small, or heavily RLHF'd): use both. The model cannot redirect itself cognitively even when told to.
+\end{itemize}
+
+\subsection{Generalization Beyond Sycophancy}
+
+If sycophancy is a cognitive shortcut (agreement is the cheapest token sequence), other failure modes may share the same structure: hallucination (plausible $>$ true), shallow reasoning (surface is cheap), verbosity (more tokens = safer), bias (dominant pattern wins). Each darshana engine maps to a specific failure mode's structural fix. Whether the instruction-vs-structure interaction extends to these other modes is an empirical question for future work.
+
+% ===========================================================================
+\section{Limitations}
+% ===========================================================================
+
+\textbf{Automated detection.} Claude Haiku 4.5 judges sycophancy, which may introduce Anthropic-specific biases. Blind human evaluation infrastructure is built but not yet scored.
+
+\textbf{Two models in the factorial.} The $2 \times 2$ covers Claude and Llama only. The interaction may differ for other model pairs.
+
+\textbf{Opinion-based prompts.} 150/200 prompts are opinion-based. Pushback resistance, false premise acceptance, and bad decision validation are not tested.
+
+\textbf{Cross-experiment rate differences.} The model scan (48 prompts, pattern matching) and factorial (200 prompts, Haiku judge) use different detection methods. Claude Sonnet 4.6 shows 56.2\% in the scan but 26.0\% in the factorial. Within-experiment comparisons are valid; cross-experiment absolute numbers should be interpreted cautiously.
+
+\textbf{Pattern-based routing.} The Buddhi router uses keyword matching. A production system should use a trained classifier.
+
+% ===========================================================================
+\section{Related Work}
+% ===========================================================================
+
+\textbf{Sycophancy.} \citet{perez2023discovering} characterize sycophancy via model-written evaluations. \citet{sharma2024towards} decompose it into preference, consistency, and reasoning types. \citet{wei2024reducing} propose training-time interventions. We provide the first cross-model comparison and the first $2 \times 2$ factorial of instruction vs.\ structure.
+
+\textbf{Inference-time interventions.} Chain-of-thought \citep{wei2022chain}, self-consistency \citep{wang2023selfconsistency}, and tree-of-thoughts \citep{yao2024tree} improve reasoning at inference time. These are generic strategies; Darshana imposes domain-specific cognitive structures matched to query type.
+
+\textbf{Classical epistemology and AI.} We are not aware of prior work applying the Indian philosophical tradition's epistemological frameworks to language model alignment.
+
+% ===========================================================================
+\section{Conclusion}
+% ===========================================================================
+
+Every language model we tested is sycophantic. The fix depends on the model.
+
+Strong models need a behavioral correction: a simple instruction reduces Claude's sycophancy from 26\% to 4.5\%. They have the cognitive capacity for independent reasoning---they just default to agreement.
+
+Weaker models need cognitive scaffolding: structured reasoning prompts reduce Llama's sycophancy from 60\% to 21.5\%, and combining them with the instruction reaches 15.6\%. These models cannot reason independently even when told to.
+
+The structured intervention also improves reasoning quality orthogonally---valid cognition increases from 45\% to 72\% regardless of the instruction. Sycophancy and reasoning quality are different problems with different mechanisms.
+
+We call this the \emph{adhikara-bheda} principle: match the intervention to the model's capability. The tradition that produced the Shaddarshana encoded this insight 2,500 years before language models existed. We provide the numbers.
+
+Code, benchmark, and data: \url{https://github.com/aidgoc/om}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
