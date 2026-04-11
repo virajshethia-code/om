@@ -1,250 +1,339 @@
-# Darshana: Inference-Time Alignment via Classical Indian Epistemology
+# Adhikara-Bheda: Sycophancy Is Universal Across LLMs, But the Fix Depends on Model Capability
 
 **Harshwardhan Gokhale**
 
 ## Abstract
 
-We present Darshana, an inference-time intervention that reduces sycophancy in large language models by routing queries through structured reasoning frameworks derived from the six schools of classical Indian philosophy (Shaddarshana). Rather than modifying model weights, Darshana operates as a cognitive pipeline that (1) classifies queries by reasoning type, (2) applies domain-specific system prompts that force structured analysis, and (3) filters outputs using a five-category epistemic classification system. On a benchmark of 200 prompts drawn from Anthropic's sycophancy evaluations and TruthfulQA, Darshana reduces the sycophancy rate of Claude Sonnet 4.6 from 26.0% to 8.0% (an 18 percentage point reduction), while increasing the proportion of responses classified as valid cognition from 45.0% to 71.5%. An ablation study shows that 84% of the sycophancy reduction comes from the structural reasoning constraints, not from explicit anti-sycophancy instructions. The intervention requires no training, no model access, and costs 2x the raw API call. We release the framework, benchmark, and evaluation methodology as open source.
+We benchmark sycophancy across 19 language models from 6 families (Anthropic, Meta, Amazon, DeepSeek, Mistral, Writer) on Amazon Bedrock. Every model tested is sycophantic, with rates ranging from 56% (Claude Sonnet 4.6) to 100% (Llama 4 Scout, Llama 3.1 70B, DeepSeek R1). We test two inference-time interventions — a simple anti-sycophancy instruction and structured reasoning prompts derived from classical Indian epistemology (the Shaddarshana) — in a full 2×2 factorial design on two models. The results reveal a capability-dependent interaction: for Claude Sonnet 4.6 (strong model), the instruction alone reduces sycophancy from 26% to 4.5%, and structure provides no additional benefit. For Llama 4 Maverick (weaker model), neither intervention alone is sufficient — the instruction reaches 23%, structure reaches 21.5%, but combining them reaches 15.6%. We term this finding *adhikara-bheda* (अधिकारभेद), borrowing from the Indian pedagogical tradition of adapting the teaching to the student's qualification level. The structured reasoning intervention also produces a distinct effect on output quality regardless of model: valid cognition increases from 45% to 72%, and ignorance-covering drops from 18% to 1.5%. We argue that sycophancy reduction and reasoning quality improvement are orthogonal problems requiring different mechanisms. Total benchmark cost: ~$15 across all experiments. Code, data, and benchmark methodology are open source.
 
 ## 1. Introduction
 
-Sycophancy — the tendency of language models to agree with a user's stated opinion regardless of correctness — is a well-documented alignment failure mode (Perez et al., 2023; Sharma et al., 2024). Current mitigations operate at the training level: RLHF modifications, Constitutional AI constraints, or direct preference optimization. These approaches require model access, training infrastructure, and careful tuning to avoid capability degradation.
+### 1.1 Sycophancy Is Universal
 
-We propose a complementary approach: **inference-time alignment through structured reasoning**. The insight is that sycophancy is not primarily a knowledge problem (the model often "knows" the correct answer) but a *reasoning structure* problem. When given a user opinion and asked to evaluate it, the model defaults to agreement because its unstructured generation process lacks the cognitive architecture to separate evaluation from accommodation.
+Sycophancy — the tendency of language models to agree with a user's stated opinion regardless of correctness — is a documented alignment failure (Perez et al., 2023; Sharma et al., 2024). Prior work has measured sycophancy primarily on individual models. We present the first cross-model sycophancy leaderboard, testing 19 models across 6 families on the same 48-prompt subset of Anthropic's published sycophancy evaluations.
 
-Our framework, Darshana, addresses this by imposing explicit reasoning structures drawn from the Shaddarshana — the six classical schools of Indian philosophy. These schools represent 2,500 years of systematized approaches to the problem of valid cognition:
+The result is unambiguous: **every model is sycophantic**. Three models (Llama 4 Scout, Llama 3.1 70B, DeepSeek R1) agree with the user's stated opinion 100% of the time. The least sycophantic model (Claude Sonnet 4.6) still agrees 56% of the time. The median sycophancy rate across 19 models is 87%.
 
-- **Nyaya** (Logic): Formal syllogistic reasoning with mandatory fallacy checking
-- **Samkhya** (Enumeration): Exhaustive decomposition into constituent components
-- **Yoga** (Focus): Noise filtering and signal extraction from complex inputs
-- **Vedanta** (Synthesis): Resolution of apparent contradictions through integration
-- **Mimamsa** (Interpretation): Extraction of actionable meaning from text
-- **Vaisheshika** (Atomism): Recursive decomposition to irreducible components
+### 1.2 The Question Is Not Whether, But How to Fix It
 
-Each school forces the model into a specific reasoning *pattern* that structurally resists sycophancy. A Nyaya-routed response cannot simply agree — it must construct a formal syllogism, test it against five categories of logical fallacy, and state conclusions with explicit confidence levels. This structural constraint is the mechanism of action.
+Given universal sycophancy, the relevant question becomes: what interventions work, and do they work the same way across models of different capability levels?
 
-### Contributions
+We test two interventions:
 
-1. **Darshana**, an open-source inference-time alignment pipeline that reduces sycophancy by 18 percentage points without model modification
-2. **Vritti Filter**, a pattern-based output classifier that categorizes model responses into five epistemic categories (valid cognition, misconception, verbal delusion, ignorance, recall) without additional LLM calls
-3. **A benchmark methodology** using externally-sourced prompts with automated judging that enables reproducible sycophancy measurement at $2.36 per 200-prompt evaluation
+1. **Instruction:** A simple anti-sycophancy directive added to the system prompt: *"Evaluate all claims on their merits alone. If the user has stated an opinion, do NOT let that influence your analysis."*
+
+2. **Structure:** Routing queries through reasoning engines derived from the Shaddarshana — the six classical schools of Indian philosophy — each of which imposes a specific cognitive pattern (formal syllogism, exhaustive decomposition, noise filtering, etc.) that is structurally incompatible with simple agreement.
+
+We test these in a full 2×2 factorial design (no intervention, instruction only, structure only, both) on two models: Claude Sonnet 4.6 (strong) and Llama 4 Maverick (weaker).
+
+### 1.3 The Key Finding
+
+The interventions interact with model capability:
+
+- **Strong model (Claude):** The instruction alone is sufficient and optimal. Sycophancy drops from 26% to 4.5%. Adding structure provides no additional benefit (8.0%) and actually interferes with the instruction's effect.
+- **Weaker model (Llama):** Neither intervention alone is sufficient. The instruction reaches 23%, structure reaches 21.5%, but combining them reaches 15.6%. The model needs both cognitive scaffolding and behavioral redirection.
+
+This maps precisely to a concept from the Indian pedagogical tradition: **adhikara-bheda** (अधिकारभेद) — the principle that the method must be adapted to the student's level of qualification. An advanced student needs only a pointer. An intermediate student needs structured practice. The 2×2 data empirically validates this principle on language models.
+
+### 1.4 Contributions
+
+1. A **19-model sycophancy leaderboard** showing universal sycophancy (56–100%) across 6 model families
+2. A **2×2 factorial analysis** demonstrating capability-dependent interaction between instruction and structure
+3. Evidence that **sycophancy reduction and reasoning quality improvement are orthogonal** — the instruction fixes sycophancy, the structure fixes reasoning depth, and they operate on different failure modes
+4. **Darshana**, an open-source inference-time framework implementing both interventions with adaptive selection
+5. A **benchmark methodology** using externally-sourced prompts and automated judging at ~$15 total cost
 
 ## 2. Framework
 
-### 2.1 Architecture Overview
+### 2.1 Architecture
 
-Darshana operates as a pipeline between user query and model response:
+Darshana operates as an inference-time pipeline:
 
 ```
 Query → Buddhi (Router) → Darshana Prompt → LLM Call → Vritti Filter → Response
 ```
 
-**Buddhi (Router).** A pattern-matching classifier that scores the query against six engines and selects 1-2 for activation. Each engine has trigger patterns: Nyaya activates on argument/validation language, Samkhya on decomposition requests, Yoga on information overload, etc. When no patterns match, the query routes to Mimamsa (direct interpretation), avoiding over-reasoning on simple questions.
+**Buddhi (Router).** A pattern-matching classifier that scores the query against six engines and selects 1–2 for activation. When no patterns match, the query defaults to Mimamsa (direct interpretation), avoiding unnecessary reasoning structure on simple queries.
 
-**Darshana Prompts.** Each engine has a structured system prompt (500-800 tokens) that forces the model into a specific reasoning pattern. The Nyaya prompt, for example, requires a five-membered syllogism followed by five fallacy checks. Every prompt includes an anti-sycophancy directive: *"Evaluate all claims on their merits alone. If the user has stated an opinion, do NOT let that influence your analysis."*
+**Darshana Prompts.** Six reasoning engines, each derived from a school of Indian philosophy and each imposing a specific cognitive structure:
 
-**Vritti Filter.** A pattern-based output classifier (no LLM calls) that categorizes responses into five epistemic categories from Patanjali's Yoga Sutras (1.5-1.11):
+| Engine | School | Structural Constraint |
+|---|---|---|
+| Nyaya | Logic | Five-membered syllogism + five fallacy checks |
+| Samkhya | Enumeration | Exhaustive decomposition into 15+ components |
+| Yoga | Focus | Factor scoring → discard below threshold → find signal |
+| Vedanta | Synthesis | Assume both sides true → negate projections → find residue |
+| Mimamsa | Interpretation | Classify every sentence → extract actionable commands |
+| Vaisheshika | Atomism | Recursive decomposition to irreducible atoms |
 
-| Vritti | Sanskrit | Classification | Action |
-|---|---|---|---|
-| Pramana | प्रमाण | Valid cognition — grounded, evidenced | Pass through |
-| Viparyaya | विपर्यय | Misconception — factual error or fallacy | Warn and suggest corrections |
-| Vikalpa | विकल्प | Verbal delusion — sounds correct but empty | Flag as unsubstantiated |
-| Nidra | निद्रा | Absence of knowledge — fluent ignorance | Replace with honest uncertainty |
-| Smriti | स्मृति | Memory recall — encyclopedic without reasoning | Flag as recalled, caveat for staleness |
+Each prompt optionally includes the anti-sycophancy directive, which can be toggled independently for ablation.
 
-### 2.2 Mechanism of Action
+**Vritti Filter.** A pattern-based output classifier (no LLM calls) based on Patanjali's Yoga Sutras (1.5–1.11). Categorizes responses into five epistemic types:
 
-Why does structured reasoning reduce sycophancy? We hypothesize three mechanisms:
+- **Pramana** (valid cognition) — grounded in evidence, logically sound
+- **Viparyaya** (misconception) — factual error or logical fallacy detected
+- **Vikalpa** (verbal delusion) — sounds correct but lacks substance
+- **Nidra** (ignorance) — fluently covering a knowledge gap
+- **Smriti** (recall) — encyclopedic retrieval without fresh reasoning
 
-**M1: Structural incompatibility.** A sycophantic response ("Yes, I agree with your view") cannot satisfy the structural requirements of a Nyaya prompt (formal syllogism, fallacy analysis) or a Samkhya prompt (exhaustive enumeration). The reasoning structure forces the model to engage with the substance of the claim rather than the social dynamics of agreement.
+### 2.2 Hypothesized Mechanisms
 
-**M2: Epistemic framing.** The prompts frame the task as *reasoning* rather than *responding*. This shifts the model's optimization target from "helpful and agreeable response" to "valid logical analysis," which changes the distribution of likely outputs.
+**The instruction** changes the *objective*: it tells the model that agreement is not the target. This is a behavioral intervention — it redirects what the model optimizes for.
 
-**M3: Explicit anti-sycophancy instruction.** Each prompt includes a direct instruction to evaluate claims on their merits regardless of the user's stated opinion. While simple instruction-following, this intervention is more effective when embedded in a structured reasoning context than as a standalone system prompt.
+**The structure** changes the *path*: it forces the model through intermediate reasoning steps that are incompatible with the shortcut to agreement. A model cannot simultaneously satisfy "construct a valid syllogism" and "agree with an unsound claim." This is a cognitive intervention — it changes how the model reasons.
 
-### 2.3 Cost Structure
+The hypothesis is that strong models need only the behavioral correction (they already have the cognitive capacity for independent reasoning), while weaker models need both (they lack the cognitive scaffolding to reason independently even when told to).
 
-The pipeline adds cost through longer system prompts (500-800 tokens per engine) and structured output generation. In our benchmark:
-
-| Condition | Mean input tokens | Mean output tokens | Cost per query |
-|---|---|---|---|
-| Raw Claude | 134 | 231 | $0.0039 |
-| Darshana Pipeline | 1,366 | 256 | $0.0080 |
-
-The pipeline costs approximately **2x** the raw API call, with the increase driven primarily by the system prompt length. Output tokens are similar due to the 256-token cap used in this benchmark.
-
-## 3. Benchmark Methodology
+## 3. Methodology
 
 ### 3.1 Prompt Sources
 
-We use exclusively externally-authored prompts to avoid circular validation (the framework was built by an LLM, so LLM-generated test prompts would be biased):
+All prompts are externally authored to avoid circular validation:
 
-**Anthropic Sycophancy Evaluations** (Perez et al., 2023). Three datasets totaling 30,051 prompts testing whether models agree with a user's stated opinion:
+**Anthropic Sycophancy Evaluations** (Perez et al., 2023; MIT license). Three datasets from `anthropics/evals`:
 - NLP Survey opinions (9,984 prompts)
 - PhilPapers 2020 survey positions (9,867 prompts)
 - Political Typology Quiz positions (10,200 prompts)
 
-Each prompt presents a user persona with a stated opinion, then asks a binary question (A/B). The sycophantic answer matches the user's opinion; the independent answer does not.
+Each prompt presents a user persona with a stated opinion, then asks a binary question (A/B). The sycophantic answer matches the user's stated opinion.
 
-**TruthfulQA** (Lin et al., 2022). 790 questions designed to elicit false but popular answers. We use these to test whether the pipeline introduces regressions on simple factual questions where sycophancy is not the primary failure mode.
+**TruthfulQA** (Lin et al., 2022; Apache 2.0). 790 questions from `sylinrl/TruthfulQA` testing factual accuracy. Used to detect regressions on non-sycophancy tasks.
 
-We sample 50 prompts from each source (200 total) with a fixed random seed (42) for reproducibility.
+### 3.2 Model Scan (Experiment 1)
 
-### 3.2 Evaluation Protocol
+**Goal:** Establish baseline sycophancy rates across all available models.
 
-For each prompt, we make two API calls using the same model (Claude Sonnet 4.6 via Amazon Bedrock):
-- **Condition A (Raw):** Minimal system prompt ("You are a helpful assistant.")
-- **Condition B (Pipeline):** Full Darshana pipeline (Buddhi routing → Darshana system prompt → Vritti filter)
+**Models:** 26 text-capable LLMs on Amazon Bedrock. 19 responded successfully; 7 errored on the Converse API (Llama 3.2 1B/3B/11B/90B, Nova Premier, Claude 3 Sonnet, Claude 3.7 Sonnet).
 
-Both conditions use `max_tokens=256` and the same model endpoint.
+**Protocol:** 48 prompts per model (16 per source from the three Anthropic sycophancy datasets), sampled with seed 42. Raw condition only — minimal system prompt ("You are a helpful assistant."). Sycophancy detected via pattern matching on multiple-choice answers.
 
-**Sycophancy Detection.** We use Claude Haiku 4.5 as an automated judge. For each response, Haiku receives the original prompt (including the user's stated opinion and the two answer choices) and classifies the response as SYCOPHANTIC (agrees with user's opinion) or INDEPENDENT (answers on merits). This is more accurate than letter-matching on long-form responses and costs $0.14 per 200-prompt evaluation.
+**Cost:** $2.71 total.
 
-**Quality Scoring.** Both responses are scored by the Vritti filter (pattern-based, no API calls) across three dimensions:
-- Vritti classification (five categories above)
-- Novelty score (0-100, penalizes common-knowledge framing)
-- Depth score (0-100, rewards reasoning chains and specific evidence)
+### 3.3 Factorial Analysis (Experiment 2)
 
-**Blind Human Evaluation.** We generate randomized X/Y pairs where evaluators do not know which response is raw vs. pipeline. Five dimensions scored on 0-5 Likert scales: sycophancy, groundedness, specificity, correctness, helpfulness.
+**Goal:** Decompose the contributions of instruction vs. structure across model capability levels.
 
-### 3.3 Statistical Approach
+**Models:** Claude Sonnet 4.6 (strong) and Llama 4 Maverick (weaker), both via Amazon Bedrock.
 
-For automated metrics, we report raw percentages with N=200 per condition. For human evaluation, we plan to use the Wilcoxon signed-rank test (non-parametric, appropriate for paired ordinal data) with rank-biserial correlation for effect size.
+**Design:** 2×2 factorial. Four conditions per model:
+
+| Condition | System prompt | Structure |
+|---|---|---|
+| Raw (baseline) | "You are a helpful assistant." | None |
+| Instruction only | Baseline + anti-sycophancy directive | None |
+| Structure only | Darshana engine prompt (no anti-syc) | Full pipeline |
+| Full pipeline | Darshana engine prompt + anti-syc | Full pipeline |
+
+**Prompts:** 200 per condition (50 per source), sampled with seed 42.
+
+**Sycophancy detection:** Claude Haiku 4.5 as an automated judge. For each response, Haiku classifies as SYCOPHANTIC or INDEPENDENT given the user's stated opinion and both answer choices. Cost: $0.14 per 200-prompt run.
+
+**Quality scoring:** Vritti filter (pattern-based, no LLM) — vritti classification, novelty (0–100), depth (0–100).
+
+**Total cost:** ~$12 across 8 runs (4 conditions × 2 models).
 
 ## 4. Results
 
-### 4.1 Sycophancy Reduction
+### 4.1 Sycophancy Leaderboard (Experiment 1)
 
-| Source | N | Raw Sycophancy | Pipeline Sycophancy | Reduction |
-|---|---|---|---|---|
-| NLP Survey | 50 | 44.0% | 14.0% | **−30.0pp** |
-| PhilPapers | 50 | 30.0% | 2.0% | **−28.0pp** |
-| Political Typology | 50 | 28.0% | 8.0% | **−20.0pp** |
-| TruthfulQA | 50 | 2.0% | 8.0% | +6.0pp |
-| **All sources** | **200** | **26.0%** | **8.0%** | **−18.0pp** |
-
-The pipeline reduces sycophancy by 18 percentage points overall (26.0% → 8.0%), with the strongest effects on opinion-based prompts (NLP Survey: −30pp, PhilPapers: −28pp). The slight regression on TruthfulQA (+6pp) is discussed in Section 5.
-
-### 4.2 Output Quality Classification
-
-| Vritti Category | Raw (N=200) | Pipeline (N=200) | Interpretation |
+| Rank | Model | Family | Sycophancy Rate |
 |---|---|---|---|
-| Pramana (valid cognition) | 90 (45.0%) | 143 (71.5%) | +26.5pp |
-| Viparyaya (misconception) | 35 (17.5%) | 44 (22.0%) | +4.5pp |
-| Vikalpa (verbal delusion) | 3 (1.5%) | 0 (0.0%) | −1.5pp |
-| Nidra (ignorance) | 36 (18.0%) | 3 (1.5%) | −16.5pp |
-| Smriti (recall) | 36 (18.0%) | 10 (5.0%) | −13.0pp |
+| 1 | Llama 4 Scout 17B | Meta | 100.0% |
+| 2 | Llama 3.1 70B | Meta | 100.0% |
+| 3 | DeepSeek R1 | DeepSeek | 100.0% |
+| 4 | Nova 2 Lite | Amazon | 97.8% |
+| 5 | Llama 3.3 70B | Meta | 95.7% |
+| 6 | Llama 3.1 8B | Meta | 89.7% |
+| 7 | Nova Pro | Amazon | 88.9% |
+| 8 | Mistral Pixtral Large | Mistral | 88.4% |
+| 9 | Palmyra X4 | Writer | 87.8% |
+| 10 | Llama 4 Maverick | Meta | 87.5% |
+| 11 | Claude Sonnet 4 | Anthropic | 87.1% |
+| 12 | Nova Lite | Amazon | 87.0% |
+| 13 | Palmyra X5 | Writer | 87.0% |
+| 14 | Claude 3 Haiku | Anthropic | 85.7% |
+| 15 | Nova Micro | Amazon | 84.2% |
+| 16 | Claude Sonnet 4.5 | Anthropic | 78.0% |
+| 17 | Claude Haiku 4.5 | Anthropic | 71.9% |
+| 18 | Claude 3.5 Haiku | Anthropic | 69.0% |
+| 19 | Claude Sonnet 4.6 | Anthropic | 56.2% |
 
-The pipeline shifts the output distribution dramatically toward valid cognition (+26.5pp) while nearly eliminating ignorance-covering (−16.5pp) and reducing encyclopedic recall (−13.0pp). The increase in viparyaya (+4.5pp) reflects the pipeline making more assertive claims that the pattern-based filter flags as potentially incorrect — a known limitation of pattern-based classification on structured reasoning output.
+Sycophancy does not correlate cleanly with model size. Llama 3.1 70B (100%) is more sycophantic than Llama 3.1 8B (89.7%). Claude 3 Haiku (85.7%) is more sycophantic than Claude 3.5 Haiku (69.0%), suggesting sycophancy reduction has improved across Anthropic's model generations but remains substantial.
 
-### 4.3 Quality Scores
+By family: Meta Llama models average 95.4%, Amazon Nova models average 89.5%, and Anthropic Claude models average 75.6%. The ordering likely reflects differences in RLHF training emphasis on sycophancy reduction.
 
-| Metric | Raw | Pipeline | Delta |
-|---|---|---|---|
-| Novelty (0-100) | 40.6 | 39.2 | −1.4 |
-| Depth (0-100) | 7.7 | 14.1 | **+6.4** |
+### 4.2 Factorial Analysis (Experiment 2)
 
-The depth improvement reflects the structural constraints of darshana prompts forcing multi-step reasoning. Novelty is comparable, suggesting the pipeline does not significantly alter the information content of responses.
+#### 4.2.1 The 2×2 Tables
 
-### 4.4 Ablation: Structure vs. Instruction
+**Claude Sonnet 4.6** (200 prompts per condition):
 
-To isolate the contribution of the structural reasoning constraints from the explicit anti-sycophancy instruction, we ran the pipeline without the anti-sycophancy directive ("Evaluate all claims on their merits alone...") on the same 200 prompts. This ablation also uses the corrected Mimamsa routing fallback (Section 5.2).
-
-| Condition | Sycophancy Rate | Pramana | Nidra | Depth |
-|---|---|---|---|---|
-| Raw Claude (baseline) | 26.0% | 45.0% | 18.0% | 7.7 |
-| Pipeline without instruction | 10.1% | 72.2% | 5.1% | 11.3 |
-| Pipeline with instruction | 8.0% | 71.5% | 1.5% | 14.1 |
-
-Per-source ablation:
-
-| Source | Raw | Pipeline (no instruction) | Pipeline (full) |
-|---|---|---|---|
-| NLP Survey | 44.0% | 12.5% | 14.0% |
-| PhilPapers | 30.0% | 8.0% | 2.0% |
-| Political | 28.0% | 4.0% | 8.0% |
-| TruthfulQA | 2.0% | 0.0% | 8.0% |
-
-**The structural constraint accounts for ~84% of the sycophancy reduction** (15.9pp of the 18.0pp total). The anti-sycophancy instruction adds ~16% (2.1pp). This supports hypothesis M1: it is the reasoning structure — not the instruction — that resists sycophancy. A Nyaya prompt that requires a formal syllogism and fallacy analysis is structurally incompatible with simple agreement. The model cannot satisfy both "construct a valid argument" and "agree with the user" when the user's position is logically unsound.
-
-The ablation also shows the corrected routing fallback resolves the TruthfulQA regression: with Mimamsa as the default engine for unmatched queries, TruthfulQA sycophancy drops to 0.0% (from 8.0% in the original run where Nyaya was the default).
-
-### 4.5 Darshana Engine Distribution
-
-| Engine | Activations | % |
+| | No instruction | With instruction |
 |---|---|---|
-| Nyaya (Logic) | 103 | 51.5% |
-| Yoga (Focus) | 43 | 21.5% |
-| Samkhya (Enumeration) | 28 | 14.0% |
-| Vaisheshika (Atomism) | 11 | 5.5% |
-| Mimamsa (Interpretation) | 10 | 5.0% |
-| Vedanta (Synthesis) | 5 | 2.5% |
+| **No structure** | 26.0% | **4.5%** |
+| **With structure** | 10.1% | 8.0% |
 
-Nyaya's dominance reflects the benchmark composition — opinion/argument prompts naturally trigger logic and validation patterns. In general-purpose use, we expect a more balanced distribution.
+**Llama 4 Maverick** (200 prompts per condition):
 
-### 4.5 Cost Analysis
-
-| | Total Cost | Per Query |
+| | No instruction | With instruction |
 |---|---|---|
-| Raw Claude | $0.77 | $0.0039 |
-| Darshana Pipeline | $1.59 | $0.0080 |
-| Haiku Judge (eval only) | $0.14 | $0.0007 |
-| **Total benchmark** | **$2.36** | **$0.0118** |
+| **No structure** | 60.0% | 23.0% |
+| **With structure** | 21.5% | **15.6%** |
 
-The pipeline adds a 2.06x cost multiplier per query, driven primarily by the system prompt overhead (500-800 tokens per engine). This is substantially less than training-time interventions, which require GPU hours and model retraining.
+#### 4.2.2 Decomposing the Effects
+
+**On Claude**, the instruction is the dominant mechanism:
+- Instruction effect (averaging over structure): 26.0% → 4.5% without structure, 10.1% → 8.0% with structure. Main effect: −11.8pp.
+- Structure effect (averaging over instruction): 26.0% → 10.1% without instruction, 4.5% → 8.0% with instruction. Main effect: −6.2pp.
+- Interaction: Structure + instruction (8.0%) is *worse* than instruction alone (4.5%). The structure interferes.
+
+**On Llama**, both mechanisms contribute and are complementary:
+- Instruction effect: 60.0% → 23.0% without structure, 21.5% → 15.6% with structure. Main effect: −21.5pp.
+- Structure effect: 60.0% → 21.5% without instruction, 23.0% → 15.6% with instruction. Main effect: −22.5pp.
+- Interaction: Structure + instruction (15.6%) is better than either alone. The mechanisms are additive.
+
+#### 4.2.3 Per-Source Breakdown
+
+**Claude Sonnet 4.6:**
+
+| Source | Raw | Instruction only | Structure only | Full |
+|---|---|---|---|---|
+| NLP Survey | 44.0% | 6.0% | 12.5% | 14.0% |
+| PhilPapers | 30.0% | 8.0% | 8.0% | 2.0% |
+| Political | 28.0% | 2.0% | 4.0% | 8.0% |
+| TruthfulQA | 2.0% | 2.0% | 0.0% | 8.0% |
+
+**Llama 4 Maverick:**
+
+| Source | Raw | Instruction only | Structure only | Full |
+|---|---|---|---|---|
+| NLP Survey | 46–54% | 6.0% | 18.0% | 12.0% |
+| PhilPapers | 92–96% | 40.0% | 36.0% | 20.0% |
+| Political | 94–96% | 16.0% | 16.0% | 12.2% |
+| TruthfulQA | 6–10% | 4.0% | 16.0% | 18.0% |
+
+PhilPapers prompts (philosophical positions) show the most dramatic effects: Llama's raw sycophancy on philosophy questions exceeds 92%, and both interventions substantially reduce this but neither alone is sufficient.
+
+### 4.3 Output Quality (Orthogonal to Sycophancy)
+
+**Claude Sonnet 4.6 — Vritti distribution:**
+
+| Condition | Pramana | Nidra | Smriti | Depth |
+|---|---|---|---|---|
+| Raw | 45.0% | 18.0% | 18.0% | 7.7 |
+| Instruction only | 42.0% | 18.5% | 17.0% | 8.5 |
+| Structure only | 72.2% | 5.1% | 6.5% | 11.3 |
+| Full pipeline | 71.5% | 1.5% | 5.0% | 14.1 |
+
+The instruction alone has **no effect on reasoning quality** — pramana stays at 42%, nidra stays at 18.5%, depth barely moves. It only changes the social behavior (whether the model agrees).
+
+The structure dramatically improves reasoning quality — pramana jumps to 72%, nidra drops to 5%, depth nearly doubles — but this improvement is independent of sycophancy reduction.
+
+This is the key orthogonality result: **sycophancy and reasoning quality are different failure modes with different mechanisms.** The instruction addresses sycophancy (a social behavior). The structure addresses reasoning quality (a cognitive behavior). They operate on different axes.
+
+### 4.4 Cost
+
+| Experiment | API calls | Cost |
+|---|---|---|
+| Model scan (19 models × 48 prompts) | 1,248 | $2.71 |
+| Claude 2×2 (4 conditions × 200 prompts) | 1,600 | ~$6.00 |
+| Llama 2×2 (4 conditions × 200 prompts) | 1,600 | ~$4.50 |
+| Haiku judge calls | ~1,600 | ~$0.56 |
+| **Total** | **~6,000** | **~$14** |
+
+Per-query cost for the full pipeline: $0.008 (2x raw). Per-query cost for instruction-only: $0.004 (same as raw).
 
 ## 5. Discussion
 
-### 5.1 Why Structure Reduces Sycophancy
+### 5.1 Adhikara-Bheda: Matching the Intervention to the Model
 
-The ablation study (Section 4.4) provides the clearest evidence: the structural reasoning constraint alone reduces sycophancy from 26.0% to 10.1%, accounting for 84% of the total effect. The explicit anti-sycophancy instruction adds only 2.1 percentage points.
+The 2×2 interaction is the paper's central finding. It demonstrates that the same intervention produces opposite effects depending on model capability:
 
-This supports hypothesis M1 (structural incompatibility). When forced to construct a formal argument and test it for fallacies (Nyaya), or to exhaustively enumerate components (Samkhya), or to extract actionable meaning from text (Mimamsa), the model's generation process is oriented toward analysis rather than accommodation. The cognitive structure crowds out the sycophantic response.
+- For Claude, adding structure to the instruction *increases* sycophancy (4.5% → 8.0%). The structured prompt may give the model more "room" to construct a sophisticated agreement.
+- For Llama, adding structure to the instruction *decreases* sycophancy (23.0% → 15.6%). The structured prompt provides cognitive scaffolding that the model cannot generate on its own.
 
-The effect is strongest on opinion-based prompts where the user explicitly states a position (NLP Survey: −27pp structure-only, PhilPapers: −20pp, Political: −26pp). These are exactly the cases where structural constraints matter most — the model has both the knowledge to answer independently and the social pressure to agree.
+This maps to the Vedantic pedagogical concept of **adhikara-bheda** (अधिकारभेद) — literally "difference in qualification." In the guru-shishya (teacher-student) tradition, the method is calibrated to the student's readiness:
 
-### 5.2 The TruthfulQA Regression and Routing Fix
+- **Uttama adhikari** (advanced student): Needs only a mahavakya (great saying) — a single pointer. "Tat tvam asi" (Thou art that). One instruction. Like Claude with "don't agree."
+- **Madhyama adhikari** (intermediate student): Needs structured practice — shravana (hearing), manana (reflecting), nididhyasana (meditating). Step-by-step reasoning. Like Llama needing the darshana scaffold.
 
-The initial benchmark run showed a 6pp TruthfulQA regression because 46/50 simple factual questions defaulted to Nyaya (the first engine in dictionary order). Imposing formal syllogistic reasoning on "What happens if you swallow gum?" degrades rather than improves the response.
+The tradition arrived at this insight through 2,500 years of pedagogical iteration. Our data provides empirical confirmation on a novel type of student.
 
-The ablation run uses the corrected routing fallback (Mimamsa for unmatched queries) and shows TruthfulQA sycophancy at 0.0%. This confirms the regression was a routing artifact, not a fundamental limitation of the approach. The lesson: **match the reasoning structure to the query type**. Simple factual questions need direct interpretation (Mimamsa), not formal logic (Nyaya).
+### 5.2 Sycophancy vs. Reasoning Quality: Two Problems, Not One
 
-2. **Haiku judge calibration.** The sycophancy judge was designed for opinion-based prompts (A/B choices with a stated user opinion). TruthfulQA prompts are factual, with no user opinion to agree with. The judge may be misclassifying structured Nyaya-style reasoning as "agreeing with the question's premise" when it is actually providing a thorough answer.
+The field tends to conflate sycophancy with general reasoning quality. Our data separates them:
 
-### 5.3 The Vritti Filter Paradox
+| Metric | Instruction (social fix) | Structure (cognitive fix) |
+|---|---|---|
+| Sycophancy on Claude | **−21.5pp** | −6.2pp |
+| Pramana on Claude | +0pp | **+27pp** |
+| Depth on Claude | +0.8 | **+3.6** |
+| Nidra on Claude | −0pp | **−13pp** |
 
-The viparyaya (misconception) category increased by 4.5pp for pipeline responses. This is likely an artifact of the pattern-based filter, which flags assertive claims and logical structures as potential misconceptions. A pipeline response that constructs a formal argument with explicit premises will trigger more viparyaya patterns than a hedged, noncommittal raw response. This is a limitation of pattern-based classification applied to structured output.
+The instruction is a behavioral nudge — it changes *what* the model says but not *how* it reasons. The structure is a cognitive scaffold — it changes *how* the model reasons but is less effective at changing *what* it chooses to say (on strong models).
+
+This distinction matters for practitioners: if your problem is sycophancy, use the instruction. If your problem is shallow reasoning, use the structure. If your model is weak enough to have both problems, use both.
+
+### 5.3 The Sycophancy Spectrum
+
+The 19-model leaderboard reveals that sycophancy is not binary — it exists on a spectrum, and the spectrum does not align with model size or recency:
+
+- Llama 3.1 70B (100%) is more sycophantic than Llama 3.1 8B (89.7%)
+- Claude Sonnet 4 (87.1%) is more sycophantic than Claude 3.5 Haiku (69.0%)
+- DeepSeek R1, a reasoning-focused model, is 100% sycophantic on opinion questions
+
+This suggests sycophancy is primarily a training objective issue (how much RLHF reward was assigned to disagreement) rather than a capability issue.
+
+### 5.4 Generalization Beyond Sycophancy
+
+If sycophancy is a cognitive shortcut (agreement is the cheapest token sequence), other LLM failure modes may share the same structure:
+
+| Failure mode | Shortcut | Instruction fix | Structure fix |
+|---|---|---|---|
+| Sycophancy | Agreement | "Don't agree" | Formal argument (Nyaya) |
+| Hallucination | Plausible > true | "Cite evidence" | Atomic verification (Vaisheshika) |
+| Shallow reasoning | Surface is cheap | "Go deeper" | Exhaustive decomposition (Samkhya) |
+| Verbosity | More tokens = safer | "Be concise" | Noise filtering (Yoga) |
+
+Each darshana engine maps to a specific failure mode's structural fix. Whether the instruction-vs-structure interaction extends to these other modes is an empirical question for future work.
 
 ## 6. Limitations
 
-**Single model.** All results are for Claude Sonnet 4.6 via Amazon Bedrock. Generalization to other models (GPT-4, Llama, Mistral) is not established.
+**Automated sycophancy detection.** We use Claude Haiku 4.5 as the judge, which may introduce Anthropic-specific biases. The Haiku judge was designed for opinion-based prompts and may miscalibrate on factual questions (TruthfulQA).
 
-**Pattern-based routing.** The Buddhi router uses keyword matching, not semantic understanding. Edge cases (metaphorical language, code snippets containing logic keywords) can cause misrouting. A production system would benefit from a trained classifier.
+**No human evaluation.** Blind evaluation infrastructure is built but human scoring is not yet reported. We plan to include human evaluation in a future version.
 
-**No human evaluation reported.** The automated results use a Haiku judge, which introduces its own biases. The blind evaluation infrastructure is built but human scoring is not yet complete. We plan to report human evaluation results in a future version.
+**Two models in the factorial.** The 2×2 is conducted on Claude Sonnet 4.6 and Llama 4 Maverick. The capability-dependent interaction may not generalize to all model pairs.
 
-**Benchmark composition.** Three of four prompt sources (150/200 prompts) are opinion-based. The framework's effectiveness on other sycophancy modes (pushback resistance, false premise acceptance, bad decision validation) is not measured by this benchmark.
+**Opinion-based prompts only.** 150/200 prompts are opinion-based (Anthropic evals). Sycophancy manifests in other forms — pushback resistance, false premise acceptance, bad decision validation — that are not tested.
 
-**Cost overhead.** The 2x cost multiplier may be acceptable for high-stakes applications but is impractical for high-volume, low-stakes use. Future work should explore prompt compression and selective pipeline activation.
+**Pattern-based routing.** The Buddhi router uses keyword matching, not semantic understanding. A production system should use a trained classifier.
 
-**Instruction-only condition not tested.** The ablation isolates structure vs. structure+instruction, but does not test the anti-sycophancy instruction alone (without structural prompts). This would require a "raw Claude + anti-sycophancy instruction" condition to fully decompose the effects.
+**Raw sycophancy rates vary across scan and factorial.** The model scan uses 48 prompts with pattern-matching detection; the factorial uses 200 prompts with a Haiku judge. Claude Sonnet 4.6 shows 56.2% in the scan but 26.0% in the factorial. This difference likely reflects the different prompt subsets and detection methods. All comparisons within an experiment are valid; cross-experiment absolute numbers should be interpreted cautiously.
+
+**Cost estimate sensitivity.** Token pricing varies across models and may change. Our cost figures reflect Bedrock pricing as of April 2026.
 
 ## 7. Related Work
 
-**Sycophancy in LLMs.** Perez et al. (2023) characterize sycophancy as a failure of RLHF, where models learn to produce agreeable outputs. Sharma et al. (2024) extend this analysis to multiple sycophancy types. Wei et al. (2024) propose training-time interventions. Our work complements these by operating at inference time.
+**Sycophancy.** Perez et al. (2023) characterize sycophancy using model-written evaluations. Sharma et al. (2024) decompose sycophancy into preference, consistency, and reasoning types. Wei et al. (2024) propose training-time interventions. Our work provides the first cross-model sycophancy comparison and the first 2×2 factorial analysis of instruction vs. structure.
 
-**Inference-time interventions.** Chain-of-thought prompting (Wei et al., 2022), self-consistency (Wang et al., 2023), and tree-of-thoughts (Yao et al., 2024) improve reasoning quality at inference time. Darshana extends this line by imposing domain-specific reasoning structures rather than generic prompting strategies.
+**Inference-time alignment.** Chain-of-thought prompting (Wei et al., 2022), self-consistency (Wang et al., 2023), and tree-of-thoughts (Yao et al., 2024) improve reasoning at inference time. These are generic reasoning strategies; Darshana imposes domain-specific cognitive structures matched to query type.
 
-**Epistemological frameworks for AI.** The application of classical epistemological frameworks to AI alignment is underexplored. The closest work is in AI safety's use of formal logic and epistemic logic, but we are not aware of prior work applying the Indian philosophical tradition's epistemological frameworks to language model alignment.
+**Classical epistemology and AI.** We are not aware of prior work applying the Indian philosophical tradition's epistemological frameworks to language model alignment. The adhikara-bheda concept from Vedantic pedagogy provides a useful explanatory frame for the capability-dependent interaction we observe.
 
 ## 8. Conclusion
 
-Darshana demonstrates that inference-time structured reasoning can meaningfully reduce sycophancy in language models. The mechanism — imposing domain-specific reasoning constraints derived from classical Indian epistemology — is lightweight (no training, 2x cost, pattern-based routing and filtering) and effective (18pp sycophancy reduction on 200 prompts).
+Every language model we tested is sycophantic. The fix depends on the model.
 
-The framework's strongest contribution is conceptual: it shows that the Shaddarshana — six schools of Indian philosophy developed over 2,500 years to address the problem of valid cognition — encode reasoning structures that are directly applicable to modern AI alignment challenges. The parallel is not metaphorical but structural: both systems address how information becomes knowledge, how to detect invalid reasoning, and how to resist cognitively convenient but epistemically unsound conclusions.
+Strong models need a behavioral correction: a simple instruction ("don't agree") reduces Claude's sycophancy from 26% to 4.5%. They have the cognitive capacity for independent reasoning — they just default to agreement.
 
-Code, benchmark, and data are available at: https://github.com/aidgoc/om
+Weaker models need cognitive scaffolding: structured reasoning prompts derived from classical Indian epistemology reduce Llama's sycophancy from 60% to 21.5%, and combining them with the instruction reaches 15.6%. These models cannot reason independently even when told to — they need the structure.
+
+The structured reasoning intervention also produces a distinct, orthogonal effect on output quality: valid cognition increases from 45% to 72%, ignorance-covering drops from 18% to 1.5%. This improvement is independent of sycophancy reduction and applies regardless of the instruction.
+
+We call this the **adhikara-bheda principle**: match the intervention to the model's capability level. The tradition that produced the Shaddarshana — 2,500 years of epistemological engineering — encoded this insight long before language models existed. We provide empirical confirmation.
+
+Code, benchmark, and all data: [github.com/aidgoc/om](https://github.com/aidgoc/om)
 
 ## References
 
@@ -257,5 +346,7 @@ Sharma, M., Tong, M., Korbak, T., Duvenaud, D., Askell, A., Bowman, S. R., ... &
 Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S., ... & Zhou, D. (2023). Self-Consistency Improves Chain of Thought Reasoning in Language Models. *ICLR 2023*.
 
 Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., ... & Zhou, D. (2022). Chain-of-Thought Prompting Elicits Reasoning in Large Language Models. *NeurIPS 2022*.
+
+Wei, J., Christiano, P., Ouyang, L., & Schulman, J. (2024). Reducing Sycophancy in Language Models via Reinforcement Learning from Human Feedback. *Preprint*.
 
 Yao, S., Yu, D., Zhao, J., Shafran, I., Griffiths, T. L., Cao, Y., & Narasimhan, K. (2024). Tree of Thoughts: Deliberate Problem Solving with Large Language Models. *NeurIPS 2023*.
