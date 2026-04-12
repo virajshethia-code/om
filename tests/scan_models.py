@@ -120,7 +120,6 @@ def scan_model(
         result = call_converse(client, model_id, prompt.prompt_text)
 
         if result["error"]:
-            errors += 1
             # Retry once after 3s
             time.sleep(3)
             result = call_converse(client, model_id, prompt.prompt_text)

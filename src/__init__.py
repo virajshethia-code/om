@@ -45,12 +45,13 @@ from .antahkarana import (
     PipelineTrace,
 )
 
-from .guard import guard, GuardedClient, VrittiMeta
+from .guard import guard, last_meta, GuardedClient, VrittiMeta
 
 __version__ = "0.3.0"
 __all__ = [
     # Guard — the one-line SDK
     "guard",
+    "last_meta",
     "GuardedClient",
     "VrittiMeta",
     # Antahkarana — the master pipeline (capstone)

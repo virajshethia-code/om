@@ -9,10 +9,13 @@ Every call through the guarded client automatically:
 1. Detects the model's capability level
 2. Applies the minimum intervention (instruction for strong, structure for weak)
 3. Runs the Vritti filter on the response
-4. Attaches quality metadata to the response
+4. Makes quality metadata available via darshana.last_meta(response)
 
 The guarded client is a drop-in replacement — same API, same return types,
 with quality improvements applied transparently.
+
+Supported clients: Anthropic, AnthropicBedrock.
+OpenAI clients are not yet supported (different API shape).
 
 Based on the adhikara-bheda principle: match the intervention to the model.
 
@@ -21,9 +24,10 @@ Author: Harsh (with Claude as co-thinker)
 
 from __future__ import annotations
 
-import re
+import warnings
+import weakref
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from .darshana_router import DarshanaRouter
 from .prompts import get_darshana_prompt
@@ -75,12 +79,10 @@ def _classify_model(model: str) -> str:
     """
     model_lower = model.lower()
 
-    # Check strong models (exact substring match)
     for pattern in STRONG_MODELS:
         if pattern in model_lower:
             return "strong"
 
-    # Check weak models (family match)
     for pattern in WEAK_MODELS:
         if pattern in model_lower:
             return "weak"
@@ -89,17 +91,71 @@ def _classify_model(model: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Vritti metadata attached to responses
+# Vritti metadata — stored in a registry, not on the response object
 # ---------------------------------------------------------------------------
 
 @dataclass
 class VrittiMeta:
-    """Quality metadata attached to guarded responses."""
+    """Quality metadata from the darshana guard."""
     vritti: str           # pramana, viparyaya, vikalpa, nidra, smriti
     confidence: float     # 0.0 - 1.0
     novelty: int          # 0 - 100
     intervention: str     # "instruction", "structure", "both", "none"
     model_class: str      # "strong", "weak", "unknown"
+
+
+# WeakRef registry: maps response id -> VrittiMeta
+# Avoids mutating Pydantic response objects (which may be frozen)
+_meta_registry: dict[int, VrittiMeta] = {}
+
+
+def last_meta(response: Any) -> VrittiMeta | None:
+    """
+    Retrieve the darshana quality metadata for a guarded response.
+
+    Args:
+        response: The response object returned by a guarded client.
+
+    Returns:
+        VrittiMeta if the response was processed by the guard, None otherwise.
+
+    Example:
+        from darshana import guard, last_meta
+        client = guard(anthropic.Anthropic())
+        response = client.messages.create(...)
+        meta = last_meta(response)
+        print(meta.vritti)  # "pramana"
+    """
+    return _meta_registry.get(id(response))
+
+
+# ---------------------------------------------------------------------------
+# System prompt helpers
+# ---------------------------------------------------------------------------
+
+def _append_to_system(system: Any, text: str) -> Any:
+    """
+    Append text to a system prompt, preserving the original format.
+
+    If system is a list (Anthropic structured format with cache_control etc),
+    append a new text block. If it's a string, concatenate.
+    """
+    if isinstance(system, list):
+        # Preserve the original list structure, append a new block
+        return system + [{"type": "text", "text": text}]
+    elif isinstance(system, str) and system:
+        return system + text
+    else:
+        return text.strip()
+
+
+def _extract_system_text(system: Any) -> str:
+    """Extract plain text from a system prompt for display/logging."""
+    if isinstance(system, list):
+        return " ".join(
+            b.get("text", "") for b in system if isinstance(b, dict)
+        )
+    return system or ""
 
 
 # ---------------------------------------------------------------------------
@@ -124,90 +180,84 @@ class GuardedMessages:
 
         # Get the user's query text for routing
         messages = kwargs.get("messages", [])
-        query = ""
-        for msg in reversed(messages):
-            if msg.get("role") == "user":
-                content = msg.get("content", "")
-                if isinstance(content, str):
-                    query = content
-                elif isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get("type") == "text":
-                            query = block.get("text", "")
-                            break
-                        elif isinstance(block, str):
-                            query = block
-                            break
-                break
+        query = self._extract_query(messages)
+
+        # Get the existing system prompt (may be string or list)
+        system = kwargs.get("system", "")
 
         # Apply intervention based on model class
-        system = kwargs.get("system", "")
-        if isinstance(system, list):
-            # Anthropic format: [{"type": "text", "text": "..."}]
-            system_text = " ".join(
-                b.get("text", "") for b in system if isinstance(b, dict)
-            )
-        else:
-            system_text = system or ""
-
-        if model_class == "strong":
-            # Instruction only — append anti-syc to system prompt
+        if model_class == "strong" or model_class == "unknown":
             intervention = "instruction"
-            new_system = system_text + ANTI_SYC_INSTRUCTION if system_text else ANTI_SYC_INSTRUCTION.strip()
-            kwargs["system"] = new_system
+            kwargs["system"] = _append_to_system(system, ANTI_SYC_INSTRUCTION)
 
         elif model_class == "weak":
-            # Structure + instruction — route and apply darshana prompt
             intervention = "both"
             routing = self._router.route(query)
             engine = routing.top_engines[0]
             darshana_prompt = get_darshana_prompt(engine, guna=routing.guna.value)
-            if system_text:
-                new_system = system_text + "\n\n" + darshana_prompt
-            else:
-                new_system = darshana_prompt
-            kwargs["system"] = new_system
+            kwargs["system"] = _append_to_system(system, "\n\n" + darshana_prompt)
 
         else:
-            # Unknown model — default to instruction (safe, cheap)
-            intervention = "instruction"
-            new_system = system_text + ANTI_SYC_INSTRUCTION if system_text else ANTI_SYC_INSTRUCTION.strip()
-            kwargs["system"] = new_system
+            intervention = "none"
 
         # Make the original API call
         response = self._original.create(**kwargs)
 
         # Extract response text for vritti analysis
-        response_text = ""
+        response_text = self._extract_response_text(response)
+
+        # Run vritti filter and store metadata in registry
+        meta = self._build_meta(response_text, intervention, model_class)
+        _meta_registry[id(response)] = meta
+
+        return response
+
+    def __getattr__(self, name):
+        """Forward stream(), async variants, and anything else to the original."""
+        return getattr(self._original, name)
+
+    @staticmethod
+    def _extract_query(messages: list) -> str:
+        """Extract the last user message text."""
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    return content
+                if isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            return block.get("text", "")
+                        if isinstance(block, str):
+                            return block
+        return ""
+
+    @staticmethod
+    def _extract_response_text(response: Any) -> str:
+        """Extract text from an Anthropic Message response."""
+        text = ""
         if hasattr(response, "content") and response.content:
             for block in response.content:
                 if hasattr(block, "text"):
-                    response_text += block.text
+                    text += block.text
+        return text
 
-        # Run vritti filter (no LLM call, pattern-based only)
-        if response_text:
-            vr = self._vritti.classify(response_text)
-            novelty = self._vritti.novelty_score(response_text)
-            meta = VrittiMeta(
+    def _build_meta(self, text: str, intervention: str, model_class: str) -> VrittiMeta:
+        """Run vritti analysis and build metadata."""
+        if text:
+            vr = self._vritti.classify(text)
+            novelty = self._vritti.novelty_score(text)
+            return VrittiMeta(
                 vritti=vr.vritti.value,
                 confidence=round(vr.confidence, 3),
                 novelty=novelty,
                 intervention=intervention,
                 model_class=model_class,
             )
-        else:
-            meta = VrittiMeta(
-                vritti="unknown",
-                confidence=0.0,
-                novelty=0,
-                intervention=intervention,
-                model_class=model_class,
-            )
-
-        # Attach metadata to response (non-destructive)
-        response._darshana = meta
-
-        return response
+        return VrittiMeta(
+            vritti="unknown", confidence=0.0, novelty=0,
+            intervention=intervention, model_class=model_class,
+        )
 
 
 class GuardedClient:
@@ -215,47 +265,34 @@ class GuardedClient:
     Wraps an LLM client to apply Om's inference-time quality guard.
 
     Usage:
-        from darshana import guard
+        from darshana import guard, last_meta
         client = guard(anthropic.Anthropic())
         response = client.messages.create(...)
-        print(response._darshana.vritti)  # quality metadata
+        meta = last_meta(response)
+        print(meta.vritti)
     """
 
     def __init__(self, original_client, model_class: str = "unknown"):
         self._original = original_client
         self._model_class = model_class
 
-        # Wrap the messages interface
+        # Wrap the messages interface if it exists (Anthropic/AnthropicBedrock)
         if hasattr(original_client, "messages"):
             self.messages = GuardedMessages(
                 original_client.messages, model_class
             )
 
-        # Pass through everything else
-        self._wrap_passthrough()
-
-    def _wrap_passthrough(self):
-        """Forward all non-messages attributes to the original client."""
-        for attr in dir(self._original):
-            if attr.startswith("_") or attr == "messages":
-                continue
-            if not hasattr(self, attr):
-                try:
-                    setattr(self, attr, getattr(self._original, attr))
-                except AttributeError:
-                    pass
-
     def __getattr__(self, name):
-        """Fall through to original client for anything we don't wrap."""
+        """Forward everything we don't wrap to the original client."""
         return getattr(self._original, name)
 
 
 def guard(client, model_class: str = "unknown") -> GuardedClient:
     """
-    Wrap any LLM client with Om's inference-time quality guard.
+    Wrap an Anthropic or AnthropicBedrock client with Om's quality guard.
 
     Args:
-        client: An Anthropic, AnthropicBedrock, or OpenAI client instance.
+        client: An Anthropic or AnthropicBedrock client instance.
         model_class: Override auto-detection. One of "strong", "weak", "unknown".
             - "strong": applies instruction only (optimal for Claude 4.5+)
             - "weak": applies structure + instruction (needed for Llama, Nova, etc.)
@@ -265,23 +302,31 @@ def guard(client, model_class: str = "unknown") -> GuardedClient:
         A GuardedClient that behaves identically to the original but applies
         the appropriate sycophancy intervention on every call.
 
+    Raises:
+        TypeError: If the client doesn't have a messages interface.
+
     Example:
-        from darshana import guard
+        from darshana import guard, last_meta
         import anthropic
 
-        # One line to add Om
         client = guard(anthropic.Anthropic())
 
-        # Use exactly as before
         response = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=256,
             messages=[{"role": "user", "content": "Is this argument valid?"}],
         )
 
-        # Quality metadata is attached
-        print(response._darshana.vritti)       # "pramana"
-        print(response._darshana.intervention)  # "instruction"
-        print(response._darshana.model_class)   # "strong"
+        meta = last_meta(response)
+        print(meta.vritti)       # "pramana"
+        print(meta.intervention)  # "instruction"
+        print(meta.model_class)   # "strong"
     """
+    if not hasattr(client, "messages"):
+        raise TypeError(
+            f"guard() requires a client with a .messages interface "
+            f"(Anthropic or AnthropicBedrock). Got {type(client).__name__}. "
+            f"OpenAI clients are not yet supported."
+        )
+
     return GuardedClient(client, model_class)

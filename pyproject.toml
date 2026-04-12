@@ -50,7 +50,7 @@ all = [
 ]
 
 [project.scripts]
-darshana = "src.__main__:main"
+darshana = "darshana.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/aidgoc/om"
@@ -58,8 +58,11 @@ Repository = "https://github.com/aidgoc/om"
 Documentation = "https://github.com/aidgoc/om#readme"
 Issues = "https://github.com/aidgoc/om/issues"
 
-[tool.setuptools.packages.find]
-include = ["src*"]
+[tool.setuptools.package-dir]
+darshana = "src"
+
+[tool.setuptools]
+packages = ["darshana"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
