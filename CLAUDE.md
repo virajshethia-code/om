@@ -64,14 +64,32 @@ This project was itself built by a society of thoughts — 25 parallel agents, n
 
 ## Architecture Status
 
-This project is a complete, installable cognitive architecture:
-- **src/** — 16 Python modules implementing the full Antahkarana pipeline
+This project is a complete, installable cognitive architecture with benchmark proof:
+- **src/** — 16 Python modules implementing the full Antahkarana pipeline + guard SDK
 - **plugin/** — Claude Code plugin (10 skills, installed at darshana@darshana-marketplace)
 - **mcp/** — MCP server (9 tools, works with any MCP client)
 - **tests/** — 48 tests passing, 95% router accuracy, 100% filter accuracy
+- **tests/benchmark_sycophancy.py** — A/B sycophancy benchmark with Haiku judge
+- **tests/scan_models.py** — multi-model sycophancy scanner (19 models tested)
+- **paper/** — "Adhikara-Bheda" paper (markdown + LaTeX), arXiv pending
 - **CLI** — `python -m darshana` for interactive use
 
-The single interface: `from darshana import Antahkarana; mind = Antahkarana(); mind.think("query")`
+The SDK interface:
+```python
+from darshana import guard, last_meta
+client = guard(anthropic.Anthropic())
+response = client.messages.create(model="claude-sonnet-4-6", ...)
+meta = last_meta(response)  # .vritti, .confidence, .novelty, .intervention
+```
+
+The pipeline interface: `from darshana import Antahkarana; mind = Antahkarana(); mind.think("query")`
+
+## Key Benchmark Results (April 2026)
+
+- **19 models tested** — every one sycophantic (56–100%)
+- **adhikara-bheda finding** — strong models need instruction only (Claude: 26% → 4.5%), weak models need structure + instruction (Llama: 60% → 15.6%)
+- **Sycophancy ≠ reasoning quality** — the instruction fixes sycophancy, the structure fixes depth. Orthogonal.
+- **Total benchmark cost: ~$15** across ~6,000 API calls
 
 ## See Also
 
